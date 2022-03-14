@@ -1,0 +1,76 @@
+site_name: Lutris
+site_description: Lutris desktop client in Python / PyGObject.
+site_url: https://lutris.github.io/lutris
+repo_url: https://github.com/lutris/lutris/
+repo_name: lutris/lutris
+site_dir: site
+
+nav:
+- Home:
+  - Overview: index.md
+  - Credits: credits.md
+  - License: license.md
+- Wiki:
+  - wiki/Home.md
+  - lutris_docs/Apitracing.md
+  - lutris_docs/Battle.Net.md
+  - lutris_docs/HowToDXVK.md
+  - lutris_docs/HowToEsync.md
+  - lutris_docs/InstallingDrivers.md
+  - lutris_docs/LutrisRuntime.md
+  - lutris_docs/Origin.md
+  - lutris_docs/Overwatch.md
+  - lutris_docs/Performance-Tweaks.md
+  - lutris_docs/PressureVesselResearch.md
+  - lutris_docs/ProvidingLogs&SystemInfo.md
+  - lutris_docs/RetroArch.md
+  - lutris_docs/WineBuilds.md
+  - lutris_docs/WineDependencies.md
+  - lutris_docs/WorldOfWarcraft.md
+  - lutris_docs/titanfall-2.md
+- Reference: reference/
+- Development:
+  - Contributing: contributing.md
+
+theme:
+  name: material
+  features:
+  - navigation.tabs
+  palette:
+    scheme: slate
+    primary: teal
+    accent: purple
+
+extra_css:
+- css/mkdocstrings.css
+
+markdown_extensions:
+- admonition
+- pymdownx.emoji
+- pymdownx.magiclink
+- pymdownx.snippets:
+    check_paths: true
+- pymdownx.superfences
+- pymdownx.tabbed
+- pymdownx.tasklist
+- toc:
+    permalink: true
+
+plugins:
+- search
+- mkdocstrings:
+    watch:
+    - lutris
+    default_handler: python
+    handlers:
+      python:
+        rendering:
+          show_if_no_docstring: true
+          separate_signature: true
+- gen-files:
+    scripts:
+    - docs/gen_ref_nav.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- macros:
+    module_name: docs/macros
