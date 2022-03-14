@@ -1,0 +1,5735 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Lutris desktop client in Python / PyGObject.">
+      
+      
+      
+        <link rel="canonical" href="https://lutris.github.io/lutris/installers/">
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.2.5">
+    
+    
+      
+        <title>Installers - Lutris</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.2d9f7617.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
+        
+          
+          
+          <meta name="theme-color" content="#009485">
+        
+      
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../css/mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="purple">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#writing-installers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Lutris" class="md-header__button md-logo" aria-label="Lutris" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Lutris
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Installers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/lutris/lutris/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lutris/lutris
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link md-tabs__link--active">
+        Home
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../wiki/Home/" class="md-tabs__link">
+        Wiki
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../reference/lutris/api/" class="md-tabs__link">
+        Reference
+      </a>
+    </li>
+  
+
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../contributing/" class="md-tabs__link">
+        Development
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Lutris" class="md-nav__button md-logo" aria-label="Lutris" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
+
+    </a>
+    Lutris
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/lutris/lutris/" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    lutris/lutris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_1" type="checkbox" id="__nav_1" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_1">
+          Home
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Home" data-md-level="1">
+        <label class="md-nav__title" for="__nav_1">
+          <span class="md-nav__icon md-icon"></span>
+          Home
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Installers
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Installers
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    Table of contents
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basics" class="md-nav__link">
+    Basics
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variable-substitution" class="md-nav__link">
+    Variable substitution
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installer-meta-data" class="md-nav__link">
+    Installer meta data
+  </a>
+  
+    <nav class="md-nav" aria-label="Installer meta data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#referencing-the-main-file" class="md-nav__link">
+    Referencing the main file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requiring-additional-binaries" class="md-nav__link">
+    Requiring additional binaries
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mods-and-add-ons" class="md-nav__link">
+    Mods and add-ons
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensions-patches" class="md-nav__link">
+    Extensions / patches
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#customizing-the-end-of-install-text" class="md-nav__link">
+    Customizing the end of install text
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#game-configuration-directives" class="md-nav__link">
+    Game configuration directives
+  </a>
+  
+    <nav class="md-nav" aria-label="Game configuration directives">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-game-section-entries" class="md-nav__link">
+    Common game section entries
+  </a>
+  
+    <nav class="md-nav" aria-label="Common game section entries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wine-and-other-wine-based-runners" class="md-nav__link">
+    Wine and other wine based runners
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drm-free-steam" class="md-nav__link">
+    DRM free Steam
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scummvm" class="md-nav__link">
+    ScummVM
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runner-configuration-directives" class="md-nav__link">
+    Runner configuration directives
+  </a>
+  
+    <nav class="md-nav" aria-label="Runner configuration directives">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wine" class="md-nav__link">
+    wine
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-configuration-directives" class="md-nav__link">
+    System configuration directives
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fetching-required-files" class="md-nav__link">
+    Fetching required files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-the-installation-script" class="md-nav__link">
+    Writing the installation script
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the installation script">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#displaying-an-insert-disc-dialog" class="md-nav__link">
+    Displaying an 'Insert disc' dialog
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moving-files-and-directories" class="md-nav__link">
+    Moving files and directories
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copying-and-merging-directories" class="md-nav__link">
+    Copying and merging directories
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-archives" class="md-nav__link">
+    Extracting archives
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#making-a-file-executable" class="md-nav__link">
+    Making a file executable
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-file" class="md-nav__link">
+    Executing a file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-files" class="md-nav__link">
+    Writing files
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#writing-text-files" class="md-nav__link">
+    Writing text files
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-into-an-ini-type-config-file" class="md-nav__link">
+    Writing into an INI type config file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-into-a-json-type-file" class="md-nav__link">
+    Writing into a JSON type file
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-task-provided-by-a-runner" class="md-nav__link">
+    Running a task provided by a runner
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#displaying-a-drop-down-menu-with-options" class="md-nav__link">
+    Displaying a drop-down menu with options
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-scripts" class="md-nav__link">
+    Example scripts
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../credits/" class="md-nav__link">
+        Credits
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../license/" class="md-nav__link">
+        License
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2">
+          Wiki
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Wiki" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Wiki
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wiki/Home/" class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/Apitracing/" class="md-nav__link">
+        Apitracing a game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/Battle.Net/" class="md-nav__link">
+        Battle.Net
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/HowToDXVK/" class="md-nav__link">
+        What is DXVK?
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/HowToEsync/" class="md-nav__link">
+        What is Esync?
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/InstallingDrivers/" class="md-nav__link">
+        InstallingDrivers
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/LutrisRuntime/" class="md-nav__link">
+        LutrisRuntime
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/Origin/" class="md-nav__link">
+        Origin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/Overwatch/" class="md-nav__link">
+        Overwatch on Linux (Wine)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/Performance-Tweaks/" class="md-nav__link">
+        Performance Tweaks
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/PressureVesselResearch/" class="md-nav__link">
+        Pressure Vessel Integration
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/ProvidingLogs%26SystemInfo/" class="md-nav__link">
+        What we need to help you (TLDR):
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/RetroArch/" class="md-nav__link">
+        RetroArch
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/WineBuilds/" class="md-nav__link">
+        Wine Builds
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/WineDependencies/" class="md-nav__link">
+        WineDependencies
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/WorldOfWarcraft/" class="md-nav__link">
+        World of Warcraft
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lutris_docs/titanfall-2/" class="md-nav__link">
+        Titanfall 2 on Linux
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3">
+          Reference
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Reference" data-md-level="1">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Reference
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1" type="checkbox" id="__nav_3_1" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1">
+          lutris
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="lutris" data-md-level="2">
+        <label class="md-nav__title" for="__nav_3_1">
+          <span class="md-nav__icon md-icon"></span>
+          lutris
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/api/" class="md-nav__link">
+        api
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/cache/" class="md-nav__link">
+        cache
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/command/" class="md-nav__link">
+        command
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/config/" class="md-nav__link">
+        config
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_5" type="checkbox" id="__nav_3_1_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_5">
+          database
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="database" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_5">
+          <span class="md-nav__icon md-icon"></span>
+          database
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/categories/" class="md-nav__link">
+        categories
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/games/" class="md-nav__link">
+        games
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/schema/" class="md-nav__link">
+        schema
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/services/" class="md-nav__link">
+        services
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/sources/" class="md-nav__link">
+        sources
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/database/sql/" class="md-nav__link">
+        sql
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/discord/" class="md-nav__link">
+        discord
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/exceptions/" class="md-nav__link">
+        exceptions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/game/" class="md-nav__link">
+        game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/game_actions/" class="md-nav__link">
+        game_actions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10" type="checkbox" id="__nav_3_1_10" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10">
+          gui
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="gui" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_10">
+          <span class="md-nav__icon md-icon"></span>
+          gui
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/addgameswindow/" class="md-nav__link">
+        addgameswindow
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/application/" class="md-nav__link">
+        application
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10_3" type="checkbox" id="__nav_3_1_10_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10_3">
+          config
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="config" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_10_3">
+          <span class="md-nav__icon md-icon"></span>
+          config
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/add_game/" class="md-nav__link">
+        add_game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/base_config_box/" class="md-nav__link">
+        base_config_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/boxes/" class="md-nav__link">
+        boxes
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/common/" class="md-nav__link">
+        common
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/edit_game/" class="md-nav__link">
+        edit_game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/preferences_box/" class="md-nav__link">
+        preferences_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/preferences_dialog/" class="md-nav__link">
+        preferences_dialog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/runner/" class="md-nav__link">
+        runner
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/runner_box/" class="md-nav__link">
+        runner_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/runners_box/" class="md-nav__link">
+        runners_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/services_box/" class="md-nav__link">
+        services_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/config/sysinfo_box/" class="md-nav__link">
+        sysinfo_box
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10_4" type="checkbox" id="__nav_3_1_10_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10_4">
+          dialogs
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="dialogs" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_10_4">
+          <span class="md-nav__icon md-icon"></span>
+          dialogs
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/cache/" class="md-nav__link">
+        cache
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/download/" class="md-nav__link">
+        download
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/issue/" class="md-nav__link">
+        issue
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/log/" class="md-nav__link">
+        log
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/runner_install/" class="md-nav__link">
+        runner_install
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/uninstall_game/" class="md-nav__link">
+        uninstall_game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/dialogs/webconnect_dialog/" class="md-nav__link">
+        webconnect_dialog
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10_5" type="checkbox" id="__nav_3_1_10_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10_5">
+          installer
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="installer" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_10_5">
+          <span class="md-nav__icon md-icon"></span>
+          installer
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installer/file_box/" class="md-nav__link">
+        file_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installer/files_box/" class="md-nav__link">
+        files_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installer/script_box/" class="md-nav__link">
+        script_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installer/script_picker/" class="md-nav__link">
+        script_picker
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installer/widgets/" class="md-nav__link">
+        widgets
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/installerwindow/" class="md-nav__link">
+        installerwindow
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/lutriswindow/" class="md-nav__link">
+        lutriswindow
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10_8" type="checkbox" id="__nav_3_1_10_8" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10_8">
+          views
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="views" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_10_8">
+          <span class="md-nav__icon md-icon"></span>
+          views
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/base/" class="md-nav__link">
+        base
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/grid/" class="md-nav__link">
+        grid
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/list/" class="md-nav__link">
+        list
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/media_loader/" class="md-nav__link">
+        media_loader
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/store/" class="md-nav__link">
+        store
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/views/store_item/" class="md-nav__link">
+        store_item
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_10_9" type="checkbox" id="__nav_3_1_10_9" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_10_9">
+          widgets
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="widgets" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_10_9">
+          <span class="md-nav__icon md-icon"></span>
+          widgets
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/cellrenderers/" class="md-nav__link">
+        cellrenderers
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/common/" class="md-nav__link">
+        common
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/contextual_menu/" class="md-nav__link">
+        contextual_menu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/download_progress_box/" class="md-nav__link">
+        download_progress_box
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/game_bar/" class="md-nav__link">
+        game_bar
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/gi_composites/" class="md-nav__link">
+        gi_composites
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/log_text_view/" class="md-nav__link">
+        log_text_view
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/notifications/" class="md-nav__link">
+        notifications
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/searchable_combobox/" class="md-nav__link">
+        searchable_combobox
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/sidebar/" class="md-nav__link">
+        sidebar
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/status_icon/" class="md-nav__link">
+        status_icon
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/utils/" class="md-nav__link">
+        utils
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/gui/widgets/window/" class="md-nav__link">
+        window
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_11" type="checkbox" id="__nav_3_1_11" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_11">
+          installer
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="installer" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_11">
+          <span class="md-nav__icon md-icon"></span>
+          installer
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/commands/" class="md-nav__link">
+        commands
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/errors/" class="md-nav__link">
+        errors
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/installer/" class="md-nav__link">
+        installer
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/installer_file/" class="md-nav__link">
+        installer_file
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/interpreter/" class="md-nav__link">
+        interpreter
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/legacy/" class="md-nav__link">
+        legacy
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/installer/steam_installer/" class="md-nav__link">
+        steam_installer
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_12" type="checkbox" id="__nav_3_1_12" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_12">
+          migrations
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="migrations" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_12">
+          <span class="md-nav__icon md-icon"></span>
+          migrations
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/migrations/mess_to_mame/" class="md-nav__link">
+        mess_to_mame
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/migrations/migrate_banners/" class="md-nav__link">
+        migrate_banners
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/migrations/migrate_hidden_ids/" class="md-nav__link">
+        migrate_hidden_ids
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/migrations/migrate_steam_appids/" class="md-nav__link">
+        migrate_steam_appids
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runner_interpreter/" class="md-nav__link">
+        runner_interpreter
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_14" type="checkbox" id="__nav_3_1_14" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_14">
+          runners
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="runners" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_14">
+          <span class="md-nav__icon md-icon"></span>
+          runners
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/atari800/" class="md-nav__link">
+        atari800
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_14_2" type="checkbox" id="__nav_3_1_14_2" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_14_2">
+          commands
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="commands" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_14_2">
+          <span class="md-nav__icon md-icon"></span>
+          commands
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/commands/dosbox/" class="md-nav__link">
+        dosbox
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/commands/wine/" class="md-nav__link">
+        wine
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/dolphin/" class="md-nav__link">
+        dolphin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/dosbox/" class="md-nav__link">
+        dosbox
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/easyrpg/" class="md-nav__link">
+        easyrpg
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/fsuae/" class="md-nav__link">
+        fsuae
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/hatari/" class="md-nav__link">
+        hatari
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/json/" class="md-nav__link">
+        json
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/jzintv/" class="md-nav__link">
+        jzintv
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/libretro/" class="md-nav__link">
+        libretro
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/linux/" class="md-nav__link">
+        linux
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/mame/" class="md-nav__link">
+        mame
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/mednafen/" class="md-nav__link">
+        mednafen
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/mupen64plus/" class="md-nav__link">
+        mupen64plus
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/o2em/" class="md-nav__link">
+        o2em
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/openmsx/" class="md-nav__link">
+        openmsx
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/osmose/" class="md-nav__link">
+        osmose
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/pcsx2/" class="md-nav__link">
+        pcsx2
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/pico8/" class="md-nav__link">
+        pico8
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/redream/" class="md-nav__link">
+        redream
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/reicast/" class="md-nav__link">
+        reicast
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/residualvm/" class="md-nav__link">
+        residualvm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/rpcs3/" class="md-nav__link">
+        rpcs3
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/runner/" class="md-nav__link">
+        runner
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/ryujinx/" class="md-nav__link">
+        ryujinx
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/scummvm/" class="md-nav__link">
+        scummvm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/snes9x/" class="md-nav__link">
+        snes9x
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/steam/" class="md-nav__link">
+        steam
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/vice/" class="md-nav__link">
+        vice
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/web/" class="md-nav__link">
+        web
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/wine/" class="md-nav__link">
+        wine
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/yuzu/" class="md-nav__link">
+        yuzu
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runners/zdoom/" class="md-nav__link">
+        zdoom
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/runtime/" class="md-nav__link">
+        runtime
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_16" type="checkbox" id="__nav_3_1_16" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_16">
+          scanners
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="scanners" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_16">
+          <span class="md-nav__icon md-icon"></span>
+          scanners
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/scanners/lutris/" class="md-nav__link">
+        lutris
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/scanners/retroarch/" class="md-nav__link">
+        retroarch
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_17" type="checkbox" id="__nav_3_1_17" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_17">
+          services
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="services" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_17">
+          <span class="md-nav__icon md-icon"></span>
+          services
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/base/" class="md-nav__link">
+        base
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/battlenet/" class="md-nav__link">
+        battlenet
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/bethesda/" class="md-nav__link">
+        bethesda
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/dolphin/" class="md-nav__link">
+        dolphin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/egs/" class="md-nav__link">
+        egs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/gog/" class="md-nav__link">
+        gog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/humblebundle/" class="md-nav__link">
+        humblebundle
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/itchio/" class="md-nav__link">
+        itchio
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/lutris/" class="md-nav__link">
+        lutris
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/mame/" class="md-nav__link">
+        mame
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/origin/" class="md-nav__link">
+        origin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/scummvm/" class="md-nav__link">
+        scummvm
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/service_game/" class="md-nav__link">
+        service_game
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/service_media/" class="md-nav__link">
+        service_media
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/steam/" class="md-nav__link">
+        steam
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/steamwindows/" class="md-nav__link">
+        steamwindows
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/tosec/" class="md-nav__link">
+        tosec
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/ubisoft/" class="md-nav__link">
+        ubisoft
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/services/xdg/" class="md-nav__link">
+        xdg
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/settings/" class="md-nav__link">
+        settings
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/startup/" class="md-nav__link">
+        startup
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/style_manager/" class="md-nav__link">
+        style_manager
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/sysoptions/" class="md-nav__link">
+        sysoptions
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22" type="checkbox" id="__nav_3_1_22" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22">
+          util
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="util" data-md-level="3">
+        <label class="md-nav__title" for="__nav_3_1_22">
+          <span class="md-nav__icon md-icon"></span>
+          util
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/audio/" class="md-nav__link">
+        audio
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/cookies/" class="md-nav__link">
+        cookies
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/datapath/" class="md-nav__link">
+        datapath
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/display/" class="md-nav__link">
+        display
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_5" type="checkbox" id="__nav_3_1_22_5" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_5">
+          dolphin
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="dolphin" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_5">
+          <span class="md-nav__icon md-icon"></span>
+          dolphin
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/dolphin/" class="md-nav__link">
+        Dolphin
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/dolphin/cache_reader/" class="md-nav__link">
+        cache_reader
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/downloader/" class="md-nav__link">
+        downloader
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_7" type="checkbox" id="__nav_3_1_22_7" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_7">
+          egs
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="egs" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_7">
+          <span class="md-nav__icon md-icon"></span>
+          egs
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/egs/egs_launcher/" class="md-nav__link">
+        egs_launcher
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/extract/" class="md-nav__link">
+        extract
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/fileio/" class="md-nav__link">
+        fileio
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/game_finder/" class="md-nav__link">
+        game_finder
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/gamecontrollerdb/" class="md-nav__link">
+        gamecontrollerdb
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/gog/" class="md-nav__link">
+        gog
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_13" type="checkbox" id="__nav_3_1_22_13" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_13">
+          graphics
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="graphics" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_13">
+          <span class="md-nav__icon md-icon"></span>
+          graphics
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/displayconfig/" class="md-nav__link">
+        displayconfig
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/drivers/" class="md-nav__link">
+        drivers
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/glxinfo/" class="md-nav__link">
+        glxinfo
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/vkquery/" class="md-nav__link">
+        vkquery
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/xephyr/" class="md-nav__link">
+        xephyr
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/graphics/xrandr/" class="md-nav__link">
+        xrandr
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/http/" class="md-nav__link">
+        http
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/i18n/" class="md-nav__link">
+        i18n
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/jobs/" class="md-nav__link">
+        jobs
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/joypad/" class="md-nav__link">
+        joypad
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/keyring/" class="md-nav__link">
+        keyring
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/libretro/" class="md-nav__link">
+        libretro
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/linux/" class="md-nav__link">
+        linux
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/log/" class="md-nav__link">
+        log
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/magic/" class="md-nav__link">
+        magic
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_23" type="checkbox" id="__nav_3_1_22_23" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_23">
+          mame
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="mame" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_23">
+          <span class="md-nav__icon md-icon"></span>
+          mame
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/mame/database/" class="md-nav__link">
+        database
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/mame/ini/" class="md-nav__link">
+        ini
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/nvidia/" class="md-nav__link">
+        nvidia
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/process/" class="md-nav__link">
+        process
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/process_watcher/" class="md-nav__link">
+        process_watcher
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/resources/" class="md-nav__link">
+        resources
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_28" type="checkbox" id="__nav_3_1_22_28" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_28">
+          retroarch
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="retroarch" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_28">
+          <span class="md-nav__icon md-icon"></span>
+          retroarch
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/retroarch/core_config/" class="md-nav__link">
+        core_config
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/settings/" class="md-nav__link">
+        settings
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/shell/" class="md-nav__link">
+        shell
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_31" type="checkbox" id="__nav_3_1_22_31" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_31">
+          steam
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="steam" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_31">
+          <span class="md-nav__icon md-icon"></span>
+          steam
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/steam/appmanifest/" class="md-nav__link">
+        appmanifest
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/steam/config/" class="md-nav__link">
+        config
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/steam/log/" class="md-nav__link">
+        log
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/steam/vdf/" class="md-nav__link">
+        vdf
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/steam/watcher/" class="md-nav__link">
+        watcher
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/strings/" class="md-nav__link">
+        strings
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/system/" class="md-nav__link">
+        system
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/test_config/" class="md-nav__link">
+        test_config
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/timer/" class="md-nav__link">
+        timer
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_36" type="checkbox" id="__nav_3_1_22_36" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_36">
+          ubisoft
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="ubisoft" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_36">
+          <span class="md-nav__icon md-icon"></span>
+          ubisoft
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/ubisoft/client/" class="md-nav__link">
+        client
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/ubisoft/consts/" class="md-nav__link">
+        consts
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/ubisoft/helpers/" class="md-nav__link">
+        helpers
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/ubisoft/parser/" class="md-nav__link">
+        parser
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/update_cache/" class="md-nav__link">
+        update_cache
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/urlhandler/" class="md-nav__link">
+        urlhandler
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3_1_22_39" type="checkbox" id="__nav_3_1_22_39" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3_1_22_39">
+          wine
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="wine" data-md-level="4">
+        <label class="md-nav__title" for="__nav_3_1_22_39">
+          <span class="md-nav__icon md-icon"></span>
+          wine
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/cabinstall/" class="md-nav__link">
+        cabinstall
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/d3d_extras/" class="md-nav__link">
+        d3d_extras
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/dgvoodoo2/" class="md-nav__link">
+        dgvoodoo2
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/dll_manager/" class="md-nav__link">
+        dll_manager
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/dxvk/" class="md-nav__link">
+        dxvk
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/dxvk_nvapi/" class="md-nav__link">
+        dxvk_nvapi
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/fsync/" class="md-nav__link">
+        fsync
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/prefix/" class="md-nav__link">
+        prefix
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/registry/" class="md-nav__link">
+        registry
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/vkd3d/" class="md-nav__link">
+        vkd3d
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/wine/wine/" class="md-nav__link">
+        wine
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/xdgshortcuts/" class="md-nav__link">
+        xdgshortcuts
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lutris/util/yaml/" class="md-nav__link">
+        yaml
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4">
+          Development
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Development" data-md-level="1">
+        <label class="md-nav__title" for="__nav_4">
+          <span class="md-nav__icon md-icon"></span>
+          Development
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        Contributing
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    Table of contents
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basics" class="md-nav__link">
+    Basics
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variable-substitution" class="md-nav__link">
+    Variable substitution
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installer-meta-data" class="md-nav__link">
+    Installer meta data
+  </a>
+  
+    <nav class="md-nav" aria-label="Installer meta data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#referencing-the-main-file" class="md-nav__link">
+    Referencing the main file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requiring-additional-binaries" class="md-nav__link">
+    Requiring additional binaries
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mods-and-add-ons" class="md-nav__link">
+    Mods and add-ons
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensions-patches" class="md-nav__link">
+    Extensions / patches
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#customizing-the-end-of-install-text" class="md-nav__link">
+    Customizing the end of install text
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#game-configuration-directives" class="md-nav__link">
+    Game configuration directives
+  </a>
+  
+    <nav class="md-nav" aria-label="Game configuration directives">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-game-section-entries" class="md-nav__link">
+    Common game section entries
+  </a>
+  
+    <nav class="md-nav" aria-label="Common game section entries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wine-and-other-wine-based-runners" class="md-nav__link">
+    Wine and other wine based runners
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#drm-free-steam" class="md-nav__link">
+    DRM free Steam
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scummvm" class="md-nav__link">
+    ScummVM
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runner-configuration-directives" class="md-nav__link">
+    Runner configuration directives
+  </a>
+  
+    <nav class="md-nav" aria-label="Runner configuration directives">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wine" class="md-nav__link">
+    wine
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-configuration-directives" class="md-nav__link">
+    System configuration directives
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fetching-required-files" class="md-nav__link">
+    Fetching required files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-the-installation-script" class="md-nav__link">
+    Writing the installation script
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the installation script">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#displaying-an-insert-disc-dialog" class="md-nav__link">
+    Displaying an 'Insert disc' dialog
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moving-files-and-directories" class="md-nav__link">
+    Moving files and directories
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copying-and-merging-directories" class="md-nav__link">
+    Copying and merging directories
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-archives" class="md-nav__link">
+    Extracting archives
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#making-a-file-executable" class="md-nav__link">
+    Making a file executable
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-file" class="md-nav__link">
+    Executing a file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-files" class="md-nav__link">
+    Writing files
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#writing-text-files" class="md-nav__link">
+    Writing text files
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-into-an-ini-type-config-file" class="md-nav__link">
+    Writing into an INI type config file
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writing-into-a-json-type-file" class="md-nav__link">
+    Writing into a JSON type file
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-task-provided-by-a-runner" class="md-nav__link">
+    Running a task provided by a runner
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#displaying-a-drop-down-menu-with-options" class="md-nav__link">
+    Displaying a drop-down menu with options
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-scripts" class="md-nav__link">
+    Example scripts
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
+                
+<a href="https://github.com/lutris/lutris/edit/master/docs/installers.md" title="Edit this page" class="md-content__button md-icon">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+</a>
+
+
+
+<h1 id="writing-installers">Writing installers<a class="headerlink" href="#writing-installers" title="Permanent link">&para;</a></h1>
+<h2 id="table-of-contents">Table of contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#basics">Basics</a></li>
+<li><a href="#variable-substitution">Variable substitution</a></li>
+<li><a href="#game-configuration-directives">Game configuration directives</a></li>
+<li><a href="#runner-configuration-directives">Runner configuration directives</a></li>
+<li><a href="#system-configuration-directives">System configuration directives</a></li>
+<li><a href="#fetching-required-files">Fetching required files</a></li>
+<li><a href="#installer-meta-data">Installer meta data</a></li>
+<li><a href="#writing-the-installation-script">Writing the installation script</a></li>
+<li><a href="#example-scripts">Example scripts</a></li>
+</ul>
+<h2 id="basics">Basics<a class="headerlink" href="#basics" title="Permanent link">&para;</a></h2>
+<p>Games in Lutris are written in the YAML format in a declarative way. The
+same document provides information on how to acquire game files, setup
+the game and store a base configuration.</p>
+<p>Make sure you have some level of understanding of the YAML format before
+getting into Lutris scripting. The Ansible documentation provides a
+short guide on the syntax:
+<a href="https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html">https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html</a></p>
+<p>At the very least, a Lutris installer should have a <code>game</code> section. If
+the installer needs to download or ask the user for some files, those
+can be added in the <span class="title-ref">files</span> section.</p>
+<p>Installer instructions are stored in the <code>installer</code> section. This is
+where the installer files are processed and will results in a runnable
+game when the installer has finished.</p>
+<p>The configuration for a game is constructed from its installer. The
+<span class="title-ref">files</span> and
+<span class="title-ref">installer</span> sections are removed from the
+script, some variables such as $GAMEDIR are substituted and the results
+is saved in: <code>~/.config/lutris/games/&lt;game&gt;-&lt;timestamp&gt;.yml</code>.</p>
+<p>Published installers can be accessed from a command line by using the
+<code>lutris:</code> URL prefix followed by the installer slug. For example,
+calling <code>lutris lutris:quake-darkplaces</code> will launch the Darkplaces
+installer for Quake.</p>
+<p><strong>Important note:</strong> Installer scripts downloaded to the client are
+embedded in another document. What is editable on the Lutris section is
+the <code>script</code> section of a bigger document. In addition to the script it
+self, Lutris needs to know the following information:</p>
+<ul>
+<li><code>name</code>: Name of the game, should be surrounded in quotes if
+    containing special characters.</li>
+<li><code>game_slug</code>: Game identifier on the Lutris website</li>
+<li><code>version</code>: Name of the installer</li>
+<li><code>slug</code>: Installer identifier</li>
+<li><code>runner</code>: Runner used for the game.</li>
+</ul>
+<p>If you intend to write installers locally and not use the website, you
+should have those keys provided at the root level and everything else
+indented under a <code>script</code> section. Local installers can be launched from
+the CLI with <code>lutris -i /path/to/file.yaml</code>.</p>
+<h2 id="variable-substitution">Variable substitution<a class="headerlink" href="#variable-substitution" title="Permanent link">&para;</a></h2>
+<p>You can use variables in your script to customize some aspect of it.
+Those variables get substituted for their actual value during the
+install process.</p>
+<p>Available variables are:</p>
+<ul>
+<li><code>$GAMEDIR</code>: Absolute path where the game is installed.</li>
+<li><code>$CACHE</code>: Temporary cache used to manipulate game files and deleted
+    at the end of the installation.</li>
+<li><code>$RESOLUTION</code>: Full resolution of the user's main display (eg.
+    <code>1920x1080</code>)</li>
+<li><code>$RESOLUTION_WIDTH</code>: Resolution width of the user's main display
+    (eg. <code>1920</code>)</li>
+<li><code>$RESOLUTION_HEIGHT</code>: Resolution height of the user's main display
+    (eg. <code>1080</code>)</li>
+<li><code>$WINEBIN</code>: Absolute path to the Lutris provided Wine binary used to
+    install the game.</li>
+</ul>
+<p>You can also reference files from the <code>files</code> section by their
+identifier, they will resolve to the absolute path of the downloaded or
+user provided file. Referencing game files usually doesn't require
+preceding the variable name with a dollar sign.</p>
+<h2 id="installer-meta-data">Installer meta data<a class="headerlink" href="#installer-meta-data" title="Permanent link">&para;</a></h2>
+<p>Installer meta-data is any directive that is at the root level of the
+installer used for customizing the installer.</p>
+<h3 id="referencing-the-main-file">Referencing the main file<a class="headerlink" href="#referencing-the-main-file" title="Permanent link">&para;</a></h3>
+<p>Referencing the main file of a game is possible to do at the root level
+of the installer but this information is later merged in the <code>game</code>
+section. It is recommended to put this information directly in the
+<code>game</code> section. If you see an existing installer with keys like <code>exe</code> or
+<code>main_file</code> sitting at the root level, please move them to the <code>game</code>
+section.</p>
+<h3 id="requiring-additional-binaries">Requiring additional binaries<a class="headerlink" href="#requiring-additional-binaries" title="Permanent link">&para;</a></h3>
+<p>If the game or the installer needs some system binaries to run, you can
+specify them in the <code>require-binaries</code> directive. The value is a
+comma-separated list of required binaries (acting as AND), if one of
+several binaries are able to run the program, you can add them as a <code>|</code>
+separated list (acting as OR).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="c1"># This requires cmake to be installed and either ggc or clang</span><span class="w"></span>
+<span class="w">    </span><span class="nt">require-binaries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cmake, gcc | clang</span><span class="w"></span>
+</code></pre></div>
+<h3 id="mods-and-add-ons">Mods and add-ons<a class="headerlink" href="#mods-and-add-ons" title="Permanent link">&para;</a></h3>
+<p>Mods and add-ons require that a base game is already installed on the
+system. You can let the installer know that you want to install an
+add-on by specifying the <code>requires</code> directive. The value of <code>requires</code>
+must be the canonical slug name of the base game, not one of its
+aliases. For example, to install the add-on "The reckoning" for Quake 2,
+you should add: <code>requires: quake-2</code></p>
+<p>You can also add complex requirements following the same syntax as the
+<code>require-binaries</code> directive described above.</p>
+<h3 id="extensions-patches">Extensions / patches<a class="headerlink" href="#extensions-patches" title="Permanent link">&para;</a></h3>
+<p>You can write installers that will not create a new game entry in
+Lutris. Instead they will modify the configuration on an exsiting game.
+You can use this feature with the <code>extends</code> directive. It works the same
+way as the <code>requires</code> directive and will check for a base game to be
+available.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="c1"># Used in a installer that fixes issues with Mesa</span><span class="w"></span>
+<span class="w">    </span><span class="nt">extends</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unreal-gold</span><span class="w"></span>
+</code></pre></div>
+<h3 id="customizing-the-end-of-install-text">Customizing the end of install text<a class="headerlink" href="#customizing-the-end-of-install-text" title="Permanent link">&para;</a></h3>
+<p>You can display a custom message when the installation is completed. To
+do so, use the <code>install_complete_text</code> key.</p>
+<h2 id="game-configuration-directives">Game configuration directives<a class="headerlink" href="#game-configuration-directives" title="Permanent link">&para;</a></h2>
+<p>A game configuration file can contain up to 3 sections:
+<span class="title-ref">game</span>,
+<span class="title-ref">system</span> and a section named after the
+runner used for the game.</p>
+<p>The <span class="title-ref">game</span> section can also contain
+references to other stores such as Steam or GOG. Some IDs are used to
+launch the game (Steam, ScummVM) while in other cases, the ID is only
+used to find games files on a 3rd party platform and download the
+installer (Humble Bundle, GOG).</p>
+<p>Lutris supports the following game identifiers:</p>
+<p><code>appid</code>: For Steam games. Numerical ID found in the URL of the store
+page. Example: The <span class="title-ref">appid</span> for
+<a href="https://store.steampowered.com/app/238960/Path_of_Exile/">https://store.steampowered.com/app/238960/Path_of_Exile/</a> is
+<span class="title-ref">238960</span>. This ID is used for installing
+and running the game.</p>
+<p><code>game_id</code>: Identifier used for ScummVM / ResidualVM games. Can be
+looked up on the game compatibility list:
+<a href="https://www.scummvm.org/compatibility/">https://www.scummvm.org/compatibility/</a> and
+<a href="https://www.residualvm.org/compatibility/">https://www.residualvm.org/compatibility/</a></p>
+<p><code>gogid</code>: GOG identifier. Can be looked up on
+<a href="https://www.gogdb.org/products">https://www.gogdb.org/products</a> Be sure to reference the base game and
+not one of its package or DLC. Example: The
+<span class="title-ref">gogid</span> for Darksiders III is 1246703238</p>
+<p><code>humbleid</code>: Humble Bundle ID. There currently isn't a way to lookup
+game IDs other than using the order details from the HB API. Lutris will
+soon provide easier ways to find this ID.</p>
+<p><code>main_file</code>: For MAME games, the
+<span class="title-ref">main_file</span> can refer to a MAME ID instead
+of a file path.</p>
+<h3 id="common-game-section-entries">Common game section entries<a class="headerlink" href="#common-game-section-entries" title="Permanent link">&para;</a></h3>
+<p><code>exe</code>: Main game executable. Used for Linux and Wine games. Example:
+<code>exe: exult</code></p>
+<p><code>main_file</code>: Used in most emulator runners to reference the ROM or disk
+file. Example: <code>main_file: game.rom</code>. Can also be used to pass the URL
+for web based games: <code>main_file: http://www...</code></p>
+<p><code>args</code>: Pass additional arguments to the command. Can be used with
+linux, wine, dosbox, scummvm, pico8 and zdoom runners. Example: <code>args:
+-c $GAMEDIR/exult.cfg</code></p>
+<p><code>working_dir</code>: Set the working directory for the game executable. This
+is useful if the game needs to run from a different directory than the
+one the executable resides in. This directive can be used for Linux,
+Wine and Dosbox installers. Example: <code>$GAMEDIR/path/to/game</code></p>
+<p><code>launch_configs</code>: When you have games with multiple executables
+(example: a game that comes with a map editor, or that need to be
+launched with different arguments) you can specify them in this section.
+In this section, you can have a list of configurations containing <code>exe</code>,
+<code>args</code> and <code>working_dir</code> plus a <code>name</code> to show in the launcher dialog.
+Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">main.exe</span><span class="w"></span>
+<span class="w">    </span><span class="nt">launch_configs</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">map_editor.exe</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Map Editor</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">main.exe</span><span class="w"></span>
+<span class="w">      </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-missionpack</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Mission Pack</span><span class="w"></span>
+</code></pre></div>
+<h4 id="wine-and-other-wine-based-runners">Wine and other wine based runners<a class="headerlink" href="#wine-and-other-wine-based-runners" title="Permanent link">&para;</a></h4>
+<p><code>arch</code>: Sets the architecture of a Wine prefix. By default it is set to
+<code>win64</code>, the value can be set to <code>win32</code> to setup the game in a 32-bit
+prefix.</p>
+<p><code>prefix</code>: Path to the Wine prefix. For Wine games, it should be set to
+<code>$GAMEDIR</code>.</p>
+<h4 id="drm-free-steam">DRM free Steam<a class="headerlink" href="#drm-free-steam" title="Permanent link">&para;</a></h4>
+<p>Lutris has the ability to run Steam games without launching the Steam
+client. This is only possible with certain games lacking the Steam DRM.</p>
+<p><code>run_without_steam</code>: Activate the DRM free mode and no not launch Steam
+when the game runs.</p>
+<p><code>steamless_binary</code>: Used in conjonction with <code>run_without_steam</code>. This
+allows to provide the path of the game executable if it's able to run
+without the Steam client. The game must not have the Steam DRM to use
+this feature.</p>
+<p>Example: <code>steamless_binary: $GAMEDIR/System/GMDX.exe</code></p>
+<h4 id="scummvm">ScummVM<a class="headerlink" href="#scummvm" title="Permanent link">&para;</a></h4>
+<p><code>path</code>: Location of the game files. This should be set to <code>$GAMEDIR</code> in
+installer scripts.</p>
+<h2 id="runner-configuration-directives">Runner configuration directives<a class="headerlink" href="#runner-configuration-directives" title="Permanent link">&para;</a></h2>
+<p>Runners can be customized in a section named after the runner identifier
+(<code>slug</code> field in the API). A complete list of all runners is available
+at <a href="https://lutris.net/api/runners">https://lutris.net/api/runners</a>. Use the runner's slug as the runner
+identifier. Please keep the amount of runner customization to a minimum,
+only adding what is needed to make the game run correctly. A lot of
+runner options do not have their place in Lutris installers and are
+reserved for the user's preferences.</p>
+<p>The following sections will describe runner directives commonly used in
+installers.</p>
+<h3 id="wine">wine<a class="headerlink" href="#wine" title="Permanent link">&para;</a></h3>
+<p><code>version</code>: Set the Wine version to a specific build. Only set this if
+the game has known regressions with the current default build. Abusing
+this feature slows down the development of the Wine project. Example:
+<code>version: staging-2.21-x86_64</code></p>
+<p><code>Desktop</code>: Run the game in a Wine virtual desktop. This should be used
+if the game has issues with Linux window managers such as crashes on
+Alt-Tab. Example: <code>Desktop: true</code></p>
+<p><code>WineDesktop</code>: Set the resolution of the Wine virtual desktop. If not
+provided, the virtual desktop will take up the whole screen, which is
+likely the desired behavior. It is unlikely that you would add this
+directive in an installer but can be useful is a game is picky about the
+resolution it's running in. Example: <code>WineDesktop: 1024x768</code></p>
+<p><code>dxvk</code>: Use this to disable DXVK if needed. (<code>dxvk: false</code>)</p>
+<p><code>esync</code>: Use this to enable esync. (<code>esync: true</code>)</p>
+<p><code>overrides</code>: Overrides for Wine DLLs. List your DLL overrides in a
+mapping with the following values:</p>
+<p><code>n,b</code> = Try native and fallback to builtin if native doesn't work</p>
+<p><code>b,n</code> = Try builtin and fallback to native if builtin doesn't work</p>
+<p><code>b</code> = Use builtin</p>
+<p><code>n</code> = Use native</p>
+<p><code>disabled</code> = Disable library</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">overrides</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">ddraw.dll</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">n</span><span class="w"></span>
+<span class="w">      </span><span class="nt">d3d9</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">disabled</span><span class="w"></span>
+<span class="w">      </span><span class="nt">winegstreamer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">builtin</span><span class="w"></span>
+</code></pre></div>
+<h2 id="system-configuration-directives">System configuration directives<a class="headerlink" href="#system-configuration-directives" title="Permanent link">&para;</a></h2>
+<p>Those directives are stored in the <code>system</code> section and allow for
+customization of system features. As with runner configuration options,
+system directives should be used carefully, only adding them when
+absolutely necessary to run a game.</p>
+<p><code>restore_gamma</code>: If the game doesn't restore the correct gamma on exit,
+you can use this option to call xgamma and reset the default values.
+This option won't work on Wayland. Example: <code>restore_gamma: true</code></p>
+<p><code>terminal</code>: Run the game in a terminal if the game is a text based one.
+Do not use this option to get the console output of the game, this will
+result in a broken installer. <strong>Only use this option for text based
+games.</strong></p>
+<p><code>env</code>: Sets environment variables before launching a game and during
+install. Do not <strong>ever</strong> use this directive to enable a framerate
+counter. Do not use this directive to override Wine DLLs. Variable
+substitution is available in values. Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">env</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">__GL_SHADER_DISK_CACHE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">      </span><span class="nt">__GL_THREADED_OPTIMIZATIONS</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;1&#39;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">__GL_SHADER_DISK_CACHE_PATH</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR</span><span class="w"></span>
+<span class="w">      </span><span class="nt">mesa_glthread</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;true&#39;</span><span class="w"></span>
+</code></pre></div>
+<p><code>single_cpu</code>: Run the game on a single CPU core. Useful for some old
+games that handle multicore CPUs poorly. (<code>single_cpu: true</code>)</p>
+<p><code>disable_runtime</code>: <strong>DO NOT DISABLE THE LUTRIS RUNTIME IN LUTRIS
+INSTALLERS</strong></p>
+<p><code>pulse_latency</code>: Set PulseAudio latency to 60 msecs. Can reduce audio
+stuttering. (<code>pulse_latency: true</code>)</p>
+<p><code>use_us_layout</code>: Change the keyboard layout to a standard US one while
+the game is running. Useful for games that handle other layouts poorly
+and don't have key remapping options. (<code>use_us_layou: true</code>)</p>
+<p><code>xephyr</code>: Run the game in Xephyr. This is useful for games only handling
+256 color modes. To enable Xephyr, pass the desired bit per plane value.
+(<code>xephyr: 8bpp</code>)</p>
+<p><code>xephyr_resolution</code>: Used with the <code>xephyr</code> option, this sets the size
+of the Xephyr window. (<code>xephyr_resolution: 1024x768</code>)</p>
+<h2 id="fetching-required-files">Fetching required files<a class="headerlink" href="#fetching-required-files" title="Permanent link">&para;</a></h2>
+<p>The <code>files</code> section of the installer references every file needed for
+installing the game. This section's keys are unique identifier used
+later in the <code>installer</code> section. The value can either be a string
+containing a URI pointing at the required file or a dictionary
+containing the <code>filename</code> and <code>url</code> keys. The <code>url</code> key is equivalent to
+passing only a string to the installer and the <code>filename</code> key will be
+used to give the local copy another name. If you need to set referer use
+<code>referer</code> key.</p>
+<p>If the game contains copyrighted files that cannot be redistributed, the
+value should begin with <code>N/A</code>. When the installer encounter this value,
+it will prompt the user for the location of the file. To indicate to the
+user what file to select, append a message to <code>N/A</code> like this:
+<code>N/A:Please select the installer for this game</code></p>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://example.com/gamesetup.exe</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file2</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;N/A:Select</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">setup</span><span class="nv"> </span><span class="s">file&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">file3</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://example.com/url-that-doesnt-resolve-to-a-proper-filename</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actual_local_filename.zip</span><span class="w"></span>
+<span class="w">        </span><span class="nt">referer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">www.mywebsite.com</span><span class="w"></span>
+</code></pre></div>
+<p>If the game makes use of Steam data, the value should be
+<code>$STEAM:appid:path/to/data</code>. This will check that the data is available
+or install it otherwise.</p>
+<h2 id="writing-the-installation-script">Writing the installation script<a class="headerlink" href="#writing-the-installation-script" title="Permanent link">&para;</a></h2>
+<p>After every file needed by the game has been acquired, the actual
+installation can take place. A series of directives will tell the
+installer how to set up the game correctly. Start the installer section
+with <code>installer:</code> then stack the directives by order of execution (top
+to bottom).</p>
+<h3 id="displaying-an-insert-disc-dialog">Displaying an 'Insert disc' dialog<a class="headerlink" href="#displaying-an-insert-disc-dialog" title="Permanent link">&para;</a></h3>
+<p>The <code>insert-disc</code> command will display a message box to the user
+requesting him to insert the game's disc into the optical drive.</p>
+<p>Ensure a correct disc detection by specifying a file or folder present
+on the disc with the <code>requires</code> parameter.</p>
+<p>The $DISC variable will contain the drive's path for use in subsequent
+installer tasks.</p>
+<p>A link to CDEmu's homepage and PPA will also be displayed if the program
+isn't detected on the machine, otherwise it will be replaced with a
+button to open gCDEmu. You can override this default text with the
+<code>message</code> parameter.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">insert-disc</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">requires</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">diablosetup.exe</span><span class="w"></span>
+</code></pre></div>
+<h3 id="moving-files-and-directories">Moving files and directories<a class="headerlink" href="#moving-files-and-directories" title="Permanent link">&para;</a></h3>
+<p>Move files or directories by using the <code>move</code> command. <code>move</code> requires
+two parameters: <code>src</code> (the source file or folder) and <code>dst</code> (the
+destination folder).</p>
+<p>The <code>src</code> parameter can either be a <code>file ID</code> or a path relative to game
+dir. If the parameter value is not found in the list of file ids, then
+it must be prefixed by either <code>$CACHE</code> or <code>$GAMEDIR</code> to move a file or
+directory from the download cache or the game's install dir,
+respectively.</p>
+<p>The <code>dst</code> parameter should be prefixed by either <code>$GAMEDIR</code> or <code>$HOME</code>
+to move files to path relative to the game dir or the current user's
+home.</p>
+<p>If the source is a <code>file ID</code>, it will be updated with the new
+destination path. It can then be used in following commands to access
+the moved file.</p>
+<p>The <code>move</code> command cannot overwrite files. If the destination directory
+doesn't exist, it will be created. Be sure to give the full path of the
+destination (including filename), not just the destination folder.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">move</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">src</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">game_file_id</span><span class="w"></span>
+<span class="w">        </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/location</span><span class="w"></span>
+</code></pre></div>
+<h3 id="copying-and-merging-directories">Copying and merging directories<a class="headerlink" href="#copying-and-merging-directories" title="Permanent link">&para;</a></h3>
+<p>Both merging and copying actions are done with the <code>merge</code> or the <code>copy</code>
+directive. It is not important which of these directives is used because
+<code>copy</code> is just an alias for <code>merge</code>. Whether the action does a merge or
+copy depends on the existence of the destination directory. When merging
+into an existing directory, original files with the same name as the
+ones present in the merged directory will be overwritten. Take this into
+account when writing your script and order your actions accordingly.</p>
+<p>If the source is a <code>file ID</code>, it will be updated with the new
+destination path. It can then be used in following commands to access
+the copied file.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">merge</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">src</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">game_file_id</span><span class="w"></span>
+<span class="w">        </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/location</span><span class="w"></span>
+</code></pre></div>
+<h3 id="extracting-archives">Extracting archives<a class="headerlink" href="#extracting-archives" title="Permanent link">&para;</a></h3>
+<p>Extracting archives is done with the <code>extract</code> directive, the <code>file</code>
+argument is a <code>file id</code> or a file path with optional wildcards. If the
+archive(s) should be extracted in some other location than the
+<code>$GAMEDIR</code>, you can specify a <code>dst</code> argument.</p>
+<p>You can optionally specify the archive's type with the <code>format</code> option.
+This is useful if the archive's file extension does not match what it
+should be. Accepted values for <code>format</code> are: tgz, tar, zip, 7z, rar,
+txz, bz2, gzip, deb, exe and gog(innoextract), as well as all other
+formats supported by 7zip.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">game_archive</span><span class="w"></span>
+<span class="w">        </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/datadir/</span><span class="w"></span>
+</code></pre></div>
+<h3 id="making-a-file-executable">Making a file executable<a class="headerlink" href="#making-a-file-executable" title="Permanent link">&para;</a></h3>
+<p>Marking the file as executable is done with the <code>chmodx</code> directive. It
+is often needed for games that ship in a zip file, which does not retain
+file permissions.</p>
+<p>Example: <code>- chmodx: $GAMEDIR/game_binary</code></p>
+<h3 id="executing-a-file">Executing a file<a class="headerlink" href="#executing-a-file" title="Permanent link">&para;</a></h3>
+<p>Execute files with the <code>execute</code> directive. Use the <code>file</code> parameter to
+reference a <code>file id</code> or a path, <code>args</code> to add command arguments,
+<code>terminal</code> (set to "true") to execute in a new terminal window,
+<code>working_dir</code> to set the directory to execute the command in (defaults
+to the install path). The command is executed within the Lutris Runtime
+(resolving most shared library dependencies). The file is made
+executable if necessary, no need to run chmodx before. You can also use
+<code>env</code> (environment variables), <code>exclude_processes</code> (space-separated list
+of processes to exclude from being monitored when determining if the
+execute phase finished), <code>include_processes</code> (the opposite of
+<code>exclude_processes</code>, is used to override Lutris' built-in monitoring
+exclusion list) and <code>disable_runtime</code> (run a process without the Lutris
+Runtime, useful for running system binaries).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">execute</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--argh</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">great_id</span><span class="w"></span>
+<span class="w">        </span><span class="nt">terminal</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exclude_processes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">process_not_to_monitor &quot;Process Not To Monitor&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">include_processes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">excluded_process_from_the_list</span><span class="w"></span>
+<span class="w">        </span><span class="nt">disable_runtime</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">value</span><span class="w"></span>
+</code></pre></div>
+<p>You can use the <code>command</code> parameter instead of <code>file</code> and <code>args</code>. This
+lets you run bash/shell commands easier. <code>bash</code> is used and is added to
+<code>include_processes</code> internally.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">execute</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;echo</span><span class="nv"> </span><span class="s">Hello</span><span class="nv"> </span><span class="s">World!</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">cat&#39;</span><span class="w"></span>
+</code></pre></div>
+<h3 id="writing-files">Writing files<a class="headerlink" href="#writing-files" title="Permanent link">&para;</a></h3>
+<h4 id="writing-text-files">Writing text files<a class="headerlink" href="#writing-text-files" title="Permanent link">&para;</a></h4>
+<p>Create or overwrite a file with the <code>write_file</code> directive. Use the
+<code>file</code> (an absolute path or a <code>file id</code>) and <code>content</code> parameters.</p>
+<p>You can also use the optional parameter <code>mode</code> to specify a file write
+mode. Valid values for <code>mode</code> include <code>w</code> (the default, to write to a
+new file) or <code>a</code> to append data to an existing file.</p>
+<p>Refer to the YAML documentation for reference on how to including
+multiline documents and quotes.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">write_file</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/myfile.txt</span><span class="w"></span>
+<span class="w">        </span><span class="nt">content</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;This</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">contents</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">file.&#39;</span><span class="w"></span>
+</code></pre></div>
+<h4 id="writing-into-an-ini-type-config-file">Writing into an INI type config file<a class="headerlink" href="#writing-into-an-ini-type-config-file" title="Permanent link">&para;</a></h4>
+<p>Modify or create a config file with the <code>write_config</code> directive. A
+config file is a text file composed of key=value (or key: value) lines
+grouped under [sections]. Use the <code>file</code> (an absolute path or a <code>file
+id</code>), <code>section</code>, <code>key</code> and <code>value</code> parameters or the <code>data</code> parameter.
+Set <code>merge: false</code> to first truncate the file. Note that the file is
+entirely rewritten and comments are left out; Make sure to compare the
+initial and resulting file to spot any potential parsing issues.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">write_config</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/myfile.ini</span><span class="w"></span>
+<span class="w">        </span><span class="nt">section</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Engine</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Renderer</span><span class="w"></span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OpenGL</span><span class="w"></span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">write_config</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/myfile.ini</span><span class="w"></span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">General</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">iNumHWThreads</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"></span>
+<span class="w">            </span><span class="nt">bUseThreadedAI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+</code></pre></div>
+<h4 id="writing-into-a-json-type-file">Writing into a JSON type file<a class="headerlink" href="#writing-into-a-json-type-file" title="Permanent link">&para;</a></h4>
+<p>Modify or create a JSON file with the <code>write_json</code> directive. Use the
+<code>file</code> (an absolute path or a <code>file id</code>) and <code>data</code> parameters. Note
+that the file is entirely rewritten; Make sure to compare the initial
+and resulting file to spot any potential parsing issues. You can set the
+optional parameter <code>merge</code> to <code>false</code> if you want to overwrite the JSON
+file instead of updating it.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">write_json</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/myfile.json</span><span class="w"></span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">Sound</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">Enabled</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;false&#39;</span><span class="w"></span>
+</code></pre></div>
+<p>This writes (or updates) a file with the following content:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;Sound&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;Enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;false&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</code></pre></div>
+<h3 id="running-a-task-provided-by-a-runner">Running a task provided by a runner<a class="headerlink" href="#running-a-task-provided-by-a-runner" title="Permanent link">&para;</a></h3>
+<p>Some actions are specific to some runners, you can call them with the
+<code>task</code> command. You must at least provide the <code>name</code> parameter which is
+the function that will be called. Other parameters depend on the task
+being called. It is possible to call functions from other runners by
+prefixing the task name with the runner's name (e.g., from a dosbox
+installer you can use the wineexec task with <code>wine.wineexec</code> as the
+task's <code>name</code>) If the command you will run in the task doesn't exit with
+a return code of 0, you can specify an accepted return code like
+<code>return_code: 256</code></p>
+<p>Currently, the following tasks are implemented:</p>
+<ul>
+<li>
+<p>wine: <code>create_prefix</code> Creates an empty Wine prefix at the specified
+    path. The other wine directives below include the creation of the
+    prefix, so in most cases you won't need to use the create_prefix
+    command. Parameters are:</p>
+<ul>
+<li><code>prefix</code>: the path</li>
+<li><code>arch</code>: optional architecture of the prefix, default: win64
+    unless a 32bit build is specified in the runner options.</li>
+<li><code>overrides</code>: optional DLL overrides, format described later</li>
+<li><code>install_gecko</code>: optional variable to stop installing gecko</li>
+<li><code>install_mono</code>: optional variable to stop installing mono</li>
+</ul>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">create_prefix</span><span class="w"></span>
+<span class="w">        </span><span class="nt">arch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">win64</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>wineexec</code> Runs a windows executable. Parameters are
+    <code>executable</code> (<code>file ID</code> or path), <code>args</code> (optional arguments passed
+    to the executable), <code>prefix</code> (optional WINEPREFIX), <code>arch</code> (optional
+    WINEARCH value, by default inherited from the
+    <span class="title-ref">game:</span> section, which itself defaults
+    to win64. The value can be set to <code>win32</code> to run the task in a
+    32-bit prefix.), <code>blocking</code> (if true, do not run the process in a
+    thread), <code>description</code> (a message be shown to the user during the
+    execution of the task), <code>working_dir</code> (optional working directory),
+    <code>exclude_processes</code> (optional space-separated list of processes to
+    exclude from being monitored when determining if the execute phase
+    finished), <code>include_processes</code> (the opposite of <code>exclude_processes</code>,
+    is used to override Lutris' built-in monitoring exclusion list),
+    <code>env</code> (optional environment variables), <code>overrides</code> (optional DLL
+    overrides).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">arch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">win64</span><span class="w"></span>
+<span class="w">        </span><span class="nt">blocking</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Doing something...</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wineexec</span><span class="w"></span>
+<span class="w">        </span><span class="nt">executable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">drive_c/Program Files/Game/Game.exe</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exclude_processes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">process_not_to_monitor.exe &quot;Process Not To Monitor.exe&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">include_processes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">process_from_the_excluded_list.exe</span><span class="w"></span>
+<span class="w">        </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/absolute/path/</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--windowed</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>winetricks</code> Runs winetricks with the <code>app</code> argument. <code>prefix</code>
+    is an optional WINEPREFIX path. You can run many tricks at once by
+    adding more to the <code>app</code> parameter (space-separated).</p>
+<p>By default Winetricks will run in silent mode but that can cause
+issues with some components such as XNA. In such cases, you can
+provide the option <code>silent: false</code></p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">winetricks</span><span class="w"></span>
+<span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nt40</span><span class="w"></span>
+<span class="w">        </span><span class="nt">silent</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+</code></pre></div>
+<p>For a full list of available <code>winetricks</code> see here:
+<a href="https://github.com/Winetricks/winetricks/tree/master/files/verbs">https://github.com/Winetricks/winetricks/tree/master/files/verbs</a></p>
+</li>
+<li>
+<p>wine: <code>eject_disk</code> runs eject_disk in your <code>prefix</code> argument.
+    Parameters are <code>prefix</code> (optional wineprefix path).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eject_disc</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>set_regedit</code> Modifies the Windows registry. Parameters are
+    <code>path</code> (the registry path, use backslashes), <code>key</code>, <code>value</code>, <code>type</code>
+    (optional value type, default is REG_SZ (string)), <code>prefix</code>
+    (optional WINEPREFIX), <code>arch</code> (optional architecture of the prefix).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">set_regedit</span><span class="w"></span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HKEY_CURRENT_USER\Software\Valve\Steam</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SuppressAutoRun</span><span class="w"></span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;00000000&#39;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">REG_DWORD</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>delete_registry_key</code> Deletes registry key in the Windows
+    registry. Parameters are <code>key</code>, <code>prefix</code> (optional WINEPREFIX),
+    <code>arch</code> (optional architecture of the prefix).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">set_regedit</span><span class="w"></span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HKEY_CURRENT_USER\Software\Valve\Steam</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SuppressAutoRun</span><span class="w"></span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;00000000&#39;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">REG_DWORD</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>set_regedit_file</code> Apply a regedit file to the registry,
+    Parameters are <code>filename</code> (regfile name), <code>arch</code> (optional
+    architecture of the prefix).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">set_regedit_file</span><span class="w"></span>
+<span class="w">        </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myregfile</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>wine: <code>winekill</code> Stops processes running in Wine prefix. Parameters
+    are <code>prefix</code> (optional WINEPREFIX), <code>arch</code> (optional architecture of
+    the prefix).</p>
+<p>Example</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">winekill</span><span class="w"></span>
+</code></pre></div>
+</li>
+<li>
+<p>dosbox: <code>dosexec</code> Runs dosbox. Parameters are <code>executable</code> (optional
+    <code>file ID</code> or path to executable), <code>config_file</code> (optional <code>file ID</code>
+    or path to .conf file), <code>args</code> (optional command arguments),
+    <code>working_dir</code> (optional working directory, defaults to the
+    <code>executable</code>'s dir or the <code>config_file</code>'s dir), <code>exit</code> (set to
+    <code>false</code> to prevent DOSBox to exit when the <code>executable</code> is
+    terminated).</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dosexec</span><span class="w"></span>
+<span class="w">        </span><span class="nt">executable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file_id</span><span class="w"></span>
+<span class="w">        </span><span class="nt">config</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/game_install.conf</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-scaler normal3x -conf more_conf.conf</span><span class="w"></span>
+</code></pre></div>
+</li>
+</ul>
+<h3 id="displaying-a-drop-down-menu-with-options">Displaying a drop-down menu with options<a class="headerlink" href="#displaying-a-drop-down-menu-with-options" title="Permanent link">&para;</a></h3>
+<p>Request input from the user by displaying a menu filled with options to
+choose from with the <code>input_menu</code> directive. The <code>description</code> parameter
+holds the message to the user, <code>options</code> is an indented list of <code>value:
+label</code> lines where "value" is the text that will be stored and "label"
+is the text displayed, and the optional <code>preselect</code> parameter is the
+value to preselect for the user.</p>
+<p>The result of the last input directive is available with the <code>$INPUT</code>
+alias. If need be, you can add an <code>id</code> parameter to the directive which
+will make the selected value available with <code>$INPUT_&lt;id&gt;</code> with "\&lt;id>"
+obviously being the id you specified. The id must contain only numbers,
+letters and underscores.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">input_menu</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Choose</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">language:&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LANG</span><span class="w"></span>
+<span class="w">        </span><span class="nt">options</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">en</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">English</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">fr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">French</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;value</span><span class="nv"> </span><span class="s">and&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;label</span><span class="nv"> </span><span class="s">can</span><span class="nv"> </span><span class="s">be</span><span class="nv"> </span><span class="s">anything,</span><span class="nv"> </span><span class="s">surround</span><span class="nv"> </span><span class="s">them</span><span class="nv"> </span><span class="s">with</span><span class="nv"> </span><span class="s">quotes</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">avoid</span><span class="nv"> </span><span class="s">issues&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">preselect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en</span><span class="w"></span>
+</code></pre></div>
+<p>In this example, English would be preselected. If the option eventually
+selected is French, the "$INPUT_LANG" alias would be available in
+following directives and would correspond to "fr". "$INPUT" would work
+as well, up until the next input directive.</p>
+<h2 id="example-scripts">Example scripts<a class="headerlink" href="#example-scripts" title="Permanent link">&para;</a></h2>
+<p>Those example scripts are intended to be used as standalone files. Only
+the <code>script</code> section should be added to the script submission form.</p>
+<p>Example Linux game:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/mygame</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-arg</span><span class="w"></span>
+<span class="w">        </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR</span><span class="w"></span>
+
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">myfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://example.com/mygame.zip</span><span class="w"></span>
+
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">chmodx</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/mygame</span><span class="w"></span>
+<span class="w">      </span><span class="nt">system</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SOMEENV</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+</code></pre></div>
+<p>Example wine game:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wine</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/mygame</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-args</span><span class="w"></span>
+<span class="w">        </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/prefix</span><span class="w"></span>
+<span class="w">        </span><span class="nt">arch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">win32</span><span class="w"></span>
+<span class="w">        </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/prefix</span><span class="w"></span>
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">installer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;N/A:Select</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">setup</span><span class="nv"> </span><span class="s">file&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">executable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">installer</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wineexec</span><span class="w"></span>
+<span class="w">          </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/prefix</span><span class="w"></span>
+<span class="w">      </span><span class="nt">wine</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">Desktop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">        </span><span class="nt">overrides</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">ddraw.dll</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">n</span><span class="w"></span>
+<span class="w">      </span><span class="nt">system</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">SOMEENV</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+</code></pre></div>
+<p>Example gog wine game, some installer crash with with /SILENT or
+/VERYSILENT option (Cuphead and Star Wars: Battlefront II for example),
+(most options can be found here
+<a href="http://www.jrsoftware.org/ishelp/index.php?topic=setupcmdline">http://www.jrsoftware.org/ishelp/index.php?topic=setupcmdline</a>, there
+is undocumented gog option <code>/NOGUI</code>, you need to use it when you use
+<code>/SILENT</code> and <code>/SUPPRESSMSGBOXES</code> parameters):</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wine</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/drive_c/game/bin/Game.exe</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-arg</span><span class="w"></span>
+<span class="w">        </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR</span><span class="w"></span>
+<span class="w">        </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/drive_c/game</span><span class="w"></span>
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">installer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;N/A:Select</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">setup</span><span class="nv"> </span><span class="s">file&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/SILENT /LANG=en /SP- /NOCANCEL /SUPPRESSMSGBOXES /NOGUI /DIR=&quot;C:/game&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">executable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">installer</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wineexec</span><span class="w"></span>
+</code></pre></div>
+<p>Example gog wine game, alternative (requires innoextract):</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wine</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/drive_c/Games/YourGame/game.exe</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-arg</span><span class="w"></span>
+<span class="w">        </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/prefix</span><span class="w"></span>
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">installer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;N/A:Select</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">setup</span><span class="nv"> </span><span class="s">file&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">execute</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--gog -d &quot;$CACHE&quot; setup</span><span class="w"></span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Extracting game data</span><span class="w"></span>
+<span class="w">          </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">innoextract</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">move</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Extracting game data</span><span class="w"></span>
+<span class="w">          </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/drive_c/Games/YourGame</span><span class="w"></span>
+<span class="w">          </span><span class="nt">src</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$CACHE/app</span><span class="w"></span>
+</code></pre></div>
+<p>Example gog linux game (mojosetup options found here
+<a href="https://www.reddit.com/r/linux_gaming/comments/42l258/fully_automated_gog_games_install_howto/">https://www.reddit.com/r/linux_gaming/comments/42l258/fully_automated_gog_games_install_howto/</a>):</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR/game.sh</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-arg</span><span class="w"></span>
+<span class="w">        </span><span class="nt">working_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR</span><span class="w"></span>
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">installer</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;N/A:Select</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">game&#39;s</span><span class="nv"> </span><span class="s">setup</span><span class="nv"> </span><span class="s">file&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">chmodx</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">installer</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">execute</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">installer</span><span class="w"></span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installing game, it will take a while...</span><span class="w"></span>
+<span class="w">          </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-- --i-agree-to-all-licenses --noreadme --nooptions --noprompt --destination=$GAMEDIR</span><span class="w"></span>
+</code></pre></div>
+<p>Example gog linux game, alternative:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">files</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">goginstaller</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">N/A:Please select the GOG.com Linux installer</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-arg</span><span class="w"></span>
+<span class="w">        </span><span class="nt">exe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">start.sh</span><span class="w"></span>
+<span class="w">      </span><span class="nt">installer</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$CACHE/GOG</span><span class="w"></span>
+<span class="w">          </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">goginstaller</span><span class="w"></span>
+<span class="w">          </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zip</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">merge</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">dst</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$GAMEDIR</span><span class="w"></span>
+<span class="w">          </span><span class="nt">src</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$CACHE/GOG/data/noarch/</span><span class="w"></span>
+</code></pre></div>
+<p>Example steam Linux game:</p>
+<div class="highlight"><pre><span></span><code><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">game_slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game</span><span class="w"></span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">slug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-game-installer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">runner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">steam</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">script</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">game</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">appid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">227300</span><span class="w"></span>
+<span class="w">        </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--some-args</span><span class="w"></span>
+</code></pre></div>
+
+              
+            </article>
+          </div>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Overview" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Overview
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../credits/" class="md-footer__link md-footer__link--next" aria-label="Next: Credits" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Credits
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs"], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.bd0b6b67.min.js"}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.467223ff.min.js"></script>
+      
+    
+  </body>
+</html>

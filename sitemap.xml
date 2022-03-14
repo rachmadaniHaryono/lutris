@@ -16,6 +16,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://lutris.github.io/lutris/installers/</loc>
+         <lastmod>2022-03-14</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://lutris.github.io/lutris/license/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
