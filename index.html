@@ -17,7 +17,7 @@
     
     
       
-        <title>Overview - Lutris</title>
+        <title>Lutris - Lutris</title>
       
     
     
@@ -104,7 +104,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Overview
+              Lutris
             
           </span>
         </div>
@@ -4299,52 +4299,55 @@
 
 
 
-<hr />
-<p>Lutris</p>
-<hr />
-<p>|LiberaPayBadge|_</p>
-<p>Lutris helps you install and play video games from all eras and from most
-gaming systems. By leveraging and combining existing emulators, engine
-re-implementations and compatibility layers, it gives you a central interface
-to launch all your games.</p>
-<p>The client can connect with existing services like Humble Bundle, GOG and Steam
-to make your game libraries easily available. Game downloads and installations
-are automated and can be modified through user made scripts.</p>
+<p><img alt="LiberaPayBadge" src="http://img.shields.io/liberapay/receives/Lutris.svg?logo=liberapay" /></p>
+<p>Lutris helps you install and play video games from all eras and from
+most gaming systems. By leveraging and combining existing emulators,
+engine re-implementations and compatibility layers, it gives you a
+central interface to launch all your games.</p>
+<p>The client can connect with existing services like Humble Bundle, GOG
+and Steam to make your game libraries easily available. Game downloads
+and installations are automated and can be modified through user made
+scripts.</p>
 <h1 id="running-lutris">Running Lutris<a class="headerlink" href="#running-lutris" title="Permanent link">&para;</a></h1>
-<p>If you have not installed Lutris through your package manager and are using the
-source package, it is recommended that you install lutris at least once, even an
-older version to have all dependencies available.
-Once all dependencies are satisfied, you can run lutris directly from the source
-directory with <code>./bin/lutris</code></p>
-<p>If you need to run lutris through gdb to troubleshoot segmentation faults, you
-can use the following command:</p>
-<p><code>gdb -ex r --args "/usr/bin/python3" "./bin/lutris"</code></p>
+<p>If you have not installed Lutris through your package manager and are
+using the source package, it is recommended that you install lutris at
+least once, even an older version to have all dependencies available.
+Once all dependencies are satisfied, you can run lutris directly from
+the source directory with <code>./bin/lutris</code></p>
+<p>If you need to run lutris through gdb to troubleshoot segmentation
+faults, you can use the following command:</p>
+<div class="highlight"><pre><span></span><code>gdb -ex r --args <span class="s2">&quot;/usr/bin/python3&quot;</span> <span class="s2">&quot;./bin/lutris&quot;</span>
+</code></pre></div>
 <h1 id="installer-scripts">Installer scripts<a class="headerlink" href="#installer-scripts" title="Permanent link">&para;</a></h1>
-<p>Lutris installations are fully automated through scripts, which can be written
-in either JSON or YAML.
-The scripting syntax is described in <code>docs/installers.rst</code>, and is also
-available online at <code>lutris.net &lt;https://lutris.net&gt;</code>_.</p>
+<p>Lutris installations are fully automated through scripts, which can be
+written in either JSON or YAML. The scripting syntax is described in
+<code>docs/installers.rst</code>, and is also available online at
+<a href="https://lutris.net">lutris.net</a>.</p>
 <h1 id="game-library">Game library<a class="headerlink" href="#game-library" title="Permanent link">&para;</a></h1>
-<p>Optional accounts can be created at <code>lutris.net
-&lt;https://lutris.net&gt;</code>_ and linked with Lutris clients.
-This enables your client to automatically sync fetch library from the website.
-<strong>It is currently not possible to sync from the client to the cloud.</strong>
-Via the website, it is also possible to sync your Steam library to your Lutris
-library.</p>
-<p>The Lutris client only stores a token when connected with the website, and your
-login credentials are never saved.
-This token is stored in <code>~/.cache/lutris/auth-token</code>.</p>
+<p>Optional accounts can be created at <a href="https://lutris.net">lutris.net</a> and
+linked with Lutris clients. This enables your client to automatically
+sync fetch library from the website. <strong>It is currently not possible to
+sync from the client to the cloud.</strong> Via the website, it is also
+possible to sync your Steam library to your Lutris library.</p>
+<p>The Lutris client only stores a token when connected with the website,
+and your login credentials are never saved. This token is stored in
+<code>~/.cache/lutris/auth-token</code>.</p>
 <h1 id="configuration-files">Configuration files<a class="headerlink" href="#configuration-files" title="Permanent link">&para;</a></h1>
 <ul>
-<li><code>~/.config/lutris</code>: The client, runners, and game configuration files</li>
-</ul>
-<p>There is be no need to manually edit these files as everything should be done from the client.</p>
-<ul>
 <li>
-<p><code>lutris.conf</code>: Preferences for the client's UI</p>
+<p><code>~/.config/lutris</code>: The client, runners, and game configuration
+    files</p>
+<blockquote>
+<p>There is be no need to manually edit these files as everything
+should be done from the client.</p>
+</blockquote>
 </li>
 <li>
-<p><code>system.yml</code>: Default game configuration, which applies to every game</p>
+<p><code>lutris.conf</code>: Preferences for the client\'s UI</p>
+</li>
+<li>
+<p><code>system.yml</code>: Default game configuration, which applies to every
+    game</p>
 </li>
 <li>
 <p><code>runners/*.yml</code>: Runner-specific configurations</p>
@@ -4353,25 +4356,22 @@ This token is stored in <code>~/.cache/lutris/auth-token</code>.</p>
 <p><code>games/*.yml</code>: Game-specific configurations</p>
 </li>
 </ul>
-<p>Game-specific configurations overwrite runner-specific configurations, which in
-turn overwrite the system configuration.</p>
+<p>Game-specific configurations overwrite runner-specific configurations,
+which in turn overwrite the system configuration.</p>
 <h1 id="runners-and-the-game-database">Runners and the game database<a class="headerlink" href="#runners-and-the-game-database" title="Permanent link">&para;</a></h1>
-<p><code>~/.local/share/lutris</code>: All data necessary to manage Lutris' library and games, including:</p>
+<p><code>~/.local/share/lutris</code>: All data necessary to manage Lutris\' library
+and games, including:</p>
 <ul>
-<li>
-<p><code>pga.db</code>: An SQLite database tracking the game library, game installation status, various file locations, and some additional metadata</p>
-</li>
-<li>
-<p><code>runners/*</code>: Runners downloaded from <code>lutris.net &lt;https://lutris.net&gt;</code></p>
-</li>
-<li>
-<p><code>banners/*.jpg</code>: Game banners</p>
-</li>
+<li><code>pga.db</code>: An SQLite database tracking the game library, game
+    installation status, various file locations, and some additional
+    metadata</li>
+<li><code>runners/*</code>: Runners downloaded from <a href="https://lutris.net">lutris.net</a></li>
+<li><code>banners/*.jpg</code>: Game banners</li>
 </ul>
 <p><code>~/.local/share/icons/hicolor/128x128/apps/lutris_*.png</code>: Game icons</p>
 <h1 id="command-line-options">Command line options<a class="headerlink" href="#command-line-options" title="Permanent link">&para;</a></h1>
-<p>The following command line arguments are available::</p>
-<p>-v, --version              Print the version of Lutris and exit
+<p>The following command line arguments are available:</p>
+<pre><code>-v, --version              Print the version of Lutris and exit
 -d, --debug                Show debug messages
 -i, --install              Install a game from a yml file
 -b, --output-script        Generate a bash script to run a game without the client
@@ -4386,39 +4386,42 @@ turn overwrite the system configuration.</p>
 -u, --uninstall-runner     Uninstall a Runner
 -j, --json                 Display the list of games in JSON format
 --reinstall                Reinstall game
---display=DISPLAY          X display to use</p>
+--display=DISPLAY          X display to use
+</code></pre>
 <p>Additionally, you can pass a <code>lutris:</code> protocol link followed by a game
-identifier on the command line such as::</p>
+identifier on the command line such as:</p>
 <pre><code>lutris lutris:quake
 </code></pre>
-<p>This will install the game if it is not already installed, otherwise it will
-launch the game. The game will always be installed if the <code>--reinstall</code> flag is passed.</p>
+<p>This will install the game if it is not already installed, otherwise it
+will launch the game. The game will always be installed if the
+<code>--reinstall</code> flag is passed.</p>
 <h1 id="planned-features">Planned features<a class="headerlink" href="#planned-features" title="Permanent link">&para;</a></h1>
-<p>Lutris is far from complete, and some features have yet
-to be implemented.</p>
+<p>Lutris is far from complete, and some features have yet to be
+implemented.</p>
 <p>Here's what to expect from future versions of Lutris:</p>
 <ul>
 <li>TOSEC database integration</li>
-<li>Management of personal game data (i.e. syncing games across devices using private cloud storage)</li>
-<li>Community features (friends list, chat, multiplayer game scheduling, etc.)</li>
+<li>Management of personal game data (i.e. syncing games across devices
+    using private cloud storage)</li>
+<li>Community features (friends list, chat, multiplayer game scheduling,
+    etc.)</li>
 </ul>
 <h1 id="support-the-project">Support the project<a class="headerlink" href="#support-the-project" title="Permanent link">&para;</a></h1>
-<p>Lutris is 100% community supported, to ensure a continuous development on the
-project, please consider donating to the project.
-Our main platform for supporting Lutris is Patreon: <a href="https://www.patreon.com/lutris">https://www.patreon.com/lutris</a>
-but there are also other options available at <a href="https://lutris.net/donate">https://lutris.net/donate</a></p>
+<p>Lutris is 100% community supported, to ensure a continuous development
+on the project, please consider donating to the project. Our main
+platform for supporting Lutris is Patreon:
+<a href="https://www.patreon.com/lutris">https://www.patreon.com/lutris</a> but there are also other options
+available at <a href="https://lutris.net/donate">https://lutris.net/donate</a></p>
 <h1 id="come-with-us">Come with us!<a class="headerlink" href="#come-with-us" title="Permanent link">&para;</a></h1>
 <p>Want to make Lutris better? Help implement features, fix bugs, test
 pre-releases, or simply chat with the developers?</p>
 <p>You can always reach us on:</p>
 <ul>
 <li>Discord: <a href="https://discordapp.com/invite/Pnt5CuY">https://discordapp.com/invite/Pnt5CuY</a></li>
-<li>IRC: ircs://irc.libera.chat:6697/lutris</li>
+<li>IRC: <a href="ircs://irc.libera.chat:6697/lutris">ircs://irc.libera.chat:6697/lutris</a></li>
 <li>Github: <a href="https://github.com/lutris">https://github.com/lutris</a></li>
 <li>Twitter: <a href="https://twitter.com/LutrisGaming">https://twitter.com/LutrisGaming</a></li>
 </ul>
-<p>.. |LiberaPayBadge| image:: <a href="http://img.shields.io/liberapay/receives/Lutris.svg?logo=liberapay">http://img.shields.io/liberapay/receives/Lutris.svg?logo=liberapay</a>
-.. _LiberaPayBadge: <a href="https://liberapay.com/Lutris/">https://liberapay.com/Lutris/</a></p>
 
               
             </article>

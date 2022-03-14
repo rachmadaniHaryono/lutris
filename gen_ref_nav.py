@@ -14,7 +14,7 @@ for path in sorted(Path("lutris").glob("**/*.py")):
     full_doc_path = Path("reference", doc_path)
 
     parts = list(module_path.parts)
-    if parts[-1] in ("__init__" ,"__main__"):
+    if parts[-1] in ("__init__", "__main__"):
         continue
     nav_parts = list(parts)
     nav[nav_parts] = doc_path
