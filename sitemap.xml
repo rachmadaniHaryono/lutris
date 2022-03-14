@@ -106,11 +106,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/api/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -181,11 +176,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/database/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/database/categories/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -216,11 +206,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/addgameswindow/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -237,11 +222,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/lutriswindow/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/config/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -306,11 +286,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/dialogs/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/dialogs/cache/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -346,11 +321,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/installer/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/installer/file_box/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -372,11 +342,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/installer/widgets/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/views/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -407,11 +372,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/gui/views/store_item/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/gui/widgets/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -481,11 +441,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/installer/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/installer/commands/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -521,11 +476,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/migrations/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/migrations/mess_to_mame/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -542,11 +492,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/migrations/migrate_steam_appids/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/runners/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -711,11 +656,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/runners/commands/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/runners/commands/dosbox/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -726,22 +666,12 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/scanners/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/scanners/lutris/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/scanners/retroarch/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/services/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -837,11 +767,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/services/xdg/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -1016,27 +941,12 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/dolphin/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/util/dolphin/cache_reader/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/egs/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/util/egs/egs_launcher/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/graphics/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -1071,11 +981,6 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/mame/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/util/mame/database/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
@@ -1087,11 +992,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/util/retroarch/core_config/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/steam/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
@@ -1137,11 +1037,6 @@
     </url>
     <url>
          <loc>https://lutris.github.io/lutris/reference/lutris/util/ubisoft/parser/</loc>
-         <lastmod>2022-03-14</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://lutris.github.io/lutris/reference/lutris/util/wine/</loc>
          <lastmod>2022-03-14</lastmod>
          <changefreq>daily</changefreq>
     </url>
