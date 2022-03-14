@@ -1,6 +1,4 @@
----
-title: Lutris
----
+# Lutris
 
 ![LiberaPayBadge](http://img.shields.io/liberapay/receives/Lutris.svg?logo=liberapay)
 
@@ -14,8 +12,7 @@ and Steam to make your game libraries easily available. Game downloads
 and installations are automated and can be modified through user made
 scripts.
 
-Running Lutris
-==============
+## Running Lutris
 
 If you have not installed Lutris through your package manager and are
 using the source package, it is recommended that you install lutris at
@@ -30,16 +27,14 @@ faults, you can use the following command:
 gdb -ex r --args "/usr/bin/python3" "./bin/lutris"
 ```
 
-Installer scripts
-=================
+## Installer scripts
 
 Lutris installations are fully automated through scripts, which can be
 written in either JSON or YAML. The scripting syntax is described in
 `docs/installers.rst`, and is also available online at
 [lutris.net](https://lutris.net).
 
-Game library
-============
+## Game library
 
 Optional accounts can be created at [lutris.net](https://lutris.net) and
 linked with Lutris clients. This enables your client to automatically
@@ -51,43 +46,41 @@ The Lutris client only stores a token when connected with the website,
 and your login credentials are never saved. This token is stored in
 `~/.cache/lutris/auth-token`.
 
-Configuration files
-===================
+## Configuration files
 
--   `~/.config/lutris`: The client, runners, and game configuration
+  - `~/.config/lutris`: The client, runners, and game configuration
     files
 
     > There is be no need to manually edit these files as everything
     > should be done from the client.
 
--   `lutris.conf`: Preferences for the client\'s UI
+  - `lutris.conf`: Preferences for the client's UI
 
--   `system.yml`: Default game configuration, which applies to every
+  - `system.yml`: Default game configuration, which applies to every
     game
 
--   `runners/*.yml`: Runner-specific configurations
+  - `runners/*.yml`: Runner-specific configurations
 
--   `games/*.yml`: Game-specific configurations
+  - `games/*.yml`: Game-specific configurations
 
 Game-specific configurations overwrite runner-specific configurations,
 which in turn overwrite the system configuration.
 
-Runners and the game database
-=============================
+## Runners and the game database
 
-`~/.local/share/lutris`: All data necessary to manage Lutris\' library
+`~/.local/share/lutris`: All data necessary to manage Lutris' library
 and games, including:
 
--   `pga.db`: An SQLite database tracking the game library, game
+  - `pga.db`: An SQLite database tracking the game library, game
     installation status, various file locations, and some additional
     metadata
--   `runners/*`: Runners downloaded from [lutris.net](https://lutris.net)
--   `banners/*.jpg`: Game banners
+  - `runners/*`: Runners downloaded from
+    [lutris.net](https://lutris.net)
+  - `banners/*.jpg`: Game banners
 
 `~/.local/share/icons/hicolor/128x128/apps/lutris_*.png`: Game icons
 
-Command line options
-====================
+## Command line options
 
 The following command line arguments are available:
 
@@ -117,22 +110,20 @@ This will install the game if it is not already installed, otherwise it
 will launch the game. The game will always be installed if the
 `--reinstall` flag is passed.
 
-Planned features
-================
+## Planned features
 
 Lutris is far from complete, and some features have yet to be
 implemented.
 
 Here's what to expect from future versions of Lutris:
 
--   TOSEC database integration
--   Management of personal game data (i.e. syncing games across devices
+  - TOSEC database integration
+  - Management of personal game data (i.e. syncing games across devices
     using private cloud storage)
--   Community features (friends list, chat, multiplayer game scheduling,
+  - Community features (friends list, chat, multiplayer game scheduling,
     etc.)
 
-Support the project
-===================
+## Support the project
 
 Lutris is 100% community supported, to ensure a continuous development
 on the project, please consider donating to the project. Our main
@@ -140,15 +131,14 @@ platform for supporting Lutris is Patreon:
 <https://www.patreon.com/lutris> but there are also other options
 available at <https://lutris.net/donate>
 
-Come with us!
-=============
+## Come with us\!
 
 Want to make Lutris better? Help implement features, fix bugs, test
 pre-releases, or simply chat with the developers?
 
 You can always reach us on:
 
--   Discord: <https://discordapp.com/invite/Pnt5CuY>
--   IRC: [ircs://irc.libera.chat:6697/lutris](ircs://irc.libera.chat:6697/lutris)
--   Github: <https://github.com/lutris>
--   Twitter: <https://twitter.com/LutrisGaming>
+  - Discord: <https://discordapp.com/invite/Pnt5CuY>
+  - IRC: [ircs://irc.libera.chat:6697/lutris](ircs://irc.libera.chat:6697/lutris)
+  - Github: <https://github.com/lutris>
+  - Twitter: <https://twitter.com/LutrisGaming>
