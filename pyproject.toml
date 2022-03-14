@@ -6,7 +6,7 @@ authors = ["Mathieu Comandon <strider@strycore.com>"]
 license = "GPLv3+"
 
 [tool.poetry.dependencies]
-python = "^3.6.2"
+python = "^3.7"
 astroid = '>=2.3'
 certifi = '>=2020.4.5.1'
 chardet = '>=3.0'
@@ -44,6 +44,13 @@ pytest = "*"
 pyupgrade = "*"
 safety = "*"
 nose2 = "*"
+mkdocs = "^1.2.3"
+mkdocs-coverage = "^0.2.5"
+mkdocs-macros-plugin = "^0.6.4"
+mkdocs-material = "^8.2.5"
+mkdocstrings = "^0.18.1"
+mkdocs-gen-files = "^0.3.4"
+mkdocs-literate-nav = "^0.4.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
