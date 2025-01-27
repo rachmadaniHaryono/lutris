@@ -1,4 +1,5 @@
 """Class to manipulate a process"""
+
 import os
 
 from lutris.util.log import logger
@@ -28,7 +29,7 @@ class Process:
     def _read_content(self, file_path):
         """Return the contents from a file in /proc"""
         try:
-            with open(file_path, encoding="utf-8") as proc_file:
+            with open(file_path, encoding="utf-8", errors="replace") as proc_file:
                 content = proc_file.read()
         except PermissionError:
             return ""
@@ -40,7 +41,7 @@ class Process:
     def get_stat(self, parsed=True):
         stat_filename = "/proc/{}/stat".format(self.pid)
         try:
-            with open(stat_filename, encoding="utf-8") as stat_file:
+            with open(stat_filename, encoding="utf-8", errors="replace") as stat_file:
                 _stat = stat_file.readline()
         except (ProcessLookupError, FileNotFoundError):
             return None
@@ -63,7 +64,7 @@ class Process:
         """Return pids of child processes opened by thread `tid` of process."""
         children_path = "/proc/{}/task/{}/children".format(self.pid, tid)
         try:
-            with open(children_path, encoding="utf-8") as children_file:
+            with open(children_path, encoding="utf-8", errors="replace") as children_file:
                 children_content = children_file.read()
         except (FileNotFoundError, ProcessLookupError, PermissionError):
             children_content = ""

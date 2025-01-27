@@ -1,4 +1,5 @@
 """XDG applications service"""
+
 import json
 import os
 import re
@@ -115,6 +116,7 @@ class XDGService(BaseService):
                 "game": {
                     "exe": details["exe"],
                     "args": details["args"],
+                    "working_dir": details["path"],
                 },
                 "system": {"disable_runtime": True},
             },
@@ -152,13 +154,25 @@ class XDGGame(ServiceGame):
         service_game.appid = get_appid(xdg_app)
         service_game.slug = cls.get_slug(xdg_app)
         exe, args = cls.get_command_args(xdg_app)
+        path = cls.get_desktop_entry_path(xdg_app)
         service_game.details = json.dumps(
             {
                 "exe": exe,
                 "args": args,
+                "path": path,
             }
         )
         return service_game
+
+    @staticmethod
+    def get_desktop_entry_path(xdg_app):
+        """Retrieve the Path variable from the .desktop file"""
+
+        # I expect we'll only see DesktopAppInfos here, but just in case
+        # we get something else, we'll make sure.
+        if hasattr(xdg_app, "get_string"):
+            return xdg_app.get_string("Path")
+        return None
 
     @staticmethod
     def get_command_args(app):
@@ -168,7 +182,7 @@ class XDGGame(ServiceGame):
         args = list(map(lambda arg: re.sub("%[^%]", "", arg).replace("%%", "%"), command[1:]))
         exe = command[0]
         if not exe.startswith("/"):
-            exe = system.find_executable(exe)
+            exe = system.find_required_executable(exe)
         return exe, subprocess.list2cmdline(args)
 
     @staticmethod

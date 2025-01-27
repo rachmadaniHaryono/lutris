@@ -1,4 +1,5 @@
 """System utilities"""
+
 import hashlib
 import os
 import re
@@ -10,6 +11,7 @@ import subprocess
 import zipfile
 from gettext import gettext as _
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from gi.repository import Gio, GLib
 
@@ -37,7 +39,14 @@ def get_environment():
     return {key: value for key, value in os.environ.items() if not key.startswith("BASH_FUNC")}
 
 
-def execute(command, env=None, cwd=None, quiet=False, shell=False, timeout=None):
+def execute(
+    command: List[str],
+    env: Dict[str, str] = None,
+    cwd: str = None,
+    quiet: bool = False,
+    shell: bool = False,
+    timeout: float = None,
+) -> str:
     """
     Execute a system command and return its standard output; standard error is discarded.
 
@@ -55,7 +64,14 @@ def execute(command, env=None, cwd=None, quiet=False, shell=False, timeout=None)
     return stdout
 
 
-def execute_with_error(command, env=None, cwd=None, quiet=False, shell=False, timeout=None):
+def execute_with_error(
+    command: List[str],
+    env: Dict[str, str] = None,
+    cwd: str = None,
+    quiet: bool = False,
+    shell: bool = False,
+    timeout: float = None,
+) -> Tuple[str, str]:
     """
     Execute a system command and return its standard output and; standard error in a tuple.
 
@@ -67,19 +83,27 @@ def execute_with_error(command, env=None, cwd=None, quiet=False, shell=False, ti
         timeout (int): Number of seconds the program is allowed to run, disabled by default
 
     Returns:
-        str: stdout output
+        str, str: stdout output and stderr output
     """
     return _execute(command, env=env, cwd=cwd, capture_stderr=True, quiet=quiet, shell=shell, timeout=timeout)
 
 
-def _execute(command, env=None, cwd=None, capture_stderr=False, quiet=False, shell=False, timeout=None):
+def _execute(
+    command: List[str],
+    env: Dict[str, str] = None,
+    cwd: str = None,
+    capture_stderr: bool = False,
+    quiet: bool = False,
+    shell: bool = False,
+    timeout: float = None,
+) -> Tuple[str, str]:
     # Check if the executable exists
     if not command:
         logger.error("No executable provided!")
-        return ""
+        return "", ""
     if os.path.isabs(command[0]) and not path_exists(command[0]):
         logger.error("No executable found in %s", command)
-        return ""
+        return "", ""
 
     if not quiet:
         logger.debug("Executing %s", " ".join([str(i) for i in command]))
@@ -107,10 +131,10 @@ def _execute(command, env=None, cwd=None, capture_stderr=False, quiet=False, she
             stdout, stderr = command_process.communicate(timeout=timeout)
     except (OSError, TypeError) as ex:
         logger.error("Could not run command %s (env: %s): %s", command, env, ex)
-        return ""
+        return "", ""
     except subprocess.TimeoutExpired:
         logger.error("Command %s after %s seconds", command, timeout)
-        return ""
+        return "", ""
 
     return stdout.strip(), (stderr or "").strip()
 
@@ -156,13 +180,16 @@ def spawn(command, env=None, cwd=None, quiet=False, shell=False):
         logger.error("Could not run command %s (env: %s): %s", command, env, ex)
 
 
-def read_process_output(command, timeout=5, env=None):
-    """Return the output of a command as a string"""
+def read_process_output(command, timeout=5, env=None, error_result=""):
+    """Return the output of a command as a string; if 'error_result' is not None,
+    returns that on errors. If it is, raises an exception instead."""
     try:
         return subprocess.check_output(command, timeout=timeout, env=env, encoding="utf-8", errors="ignore").strip()
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as ex:
         logger.error("%s command failed: %s", command, ex)
-        return ""
+        if error_result is None:
+            raise
+        return error_result
 
 
 def get_md5_in_zip(filename):
@@ -215,19 +242,24 @@ def make_executable(exec_path):
 
 def can_find_executable(exec_name: str) -> bool:
     """Checks if an executable can be located; if false,
-    find_executable will raise an exception."""
-    return bool(exec_name) and bool(shutil.which(exec_name))
+    find_executable will return None, and find_required_executable
+    will raise an exception."""
+    return bool(find_executable(exec_name))
 
 
-def find_executable(exec_name: str) -> str:
+def find_executable(exec_name: str) -> Optional[str]:
+    """Return the absolute path of an executable, or None if
+    it could not be found."""
+    return shutil.which(exec_name) if exec_name else None
+
+
+def find_required_executable(exec_name: str) -> str:
     """Return the absolute path of an executable, but raises a
     MissingExecutableError if it could not be found."""
-    if exec_name:
-        exe = shutil.which(exec_name)
-        if exe:
-            return exe
-
-    raise MissingExecutableError(_("The executable '%s' could not be found.") % exec_name)
+    exe = find_executable(exec_name)
+    if not exe:
+        raise MissingExecutableError(_("The executable '%s' could not be found.") % exec_name)
+    return exe
 
 
 def get_pid(program, multiple=False):
@@ -391,7 +423,18 @@ def is_removeable(path, system_config):
         return False
 
     parts = path.strip("/").split("/")
-    if parts[0] in ("usr", "var", "lib", "etc", "boot", "sbin", "bin"):
+
+    if not parts:
+        return False
+
+    if parts[0] == "var":
+        # Fedora Silverblue puts mount points under /var since they are mutable
+        # so we'll special case /var/mnt/<drive>/*.
+        if len(parts) > 3 and parts[1] in ("mnt", "media"):
+            return True
+        return False
+
+    if parts[0] in ("usr", "lib", "etc", "boot", "sbin", "bin"):
         # Path is part of the system folders
         return False
 
@@ -443,11 +486,11 @@ def get_pids_using_file(path):
     if not os.path.exists(path):
         logger.error("Can't return PIDs using non existing file: %s", path)
         return set()
-    try:
-        fuser_path = find_executable("fuser")
-    except MissingExecutableError:
+
+    fuser_path = find_executable("fuser")
+    if not fuser_path:
         logger.warning("fuser not available, please install psmisc")
-        return set([])
+        return set()
     fuser_output = execute([fuser_path, path], quiet=True)
     return set(fuser_output.split())
 
@@ -546,13 +589,19 @@ def update_desktop_icons():
         execute(["gtk-update-icon-cache", "-tf", os.path.join(settings.RUNTIME_DIR, "icons/hicolor")], quiet=True)
 
 
-def get_disk_size(path):
-    """Return the disk size in bytes of a folder"""
+def get_disk_size(path: str) -> int:
+    """Return the disk size in bytes of a file or folder"""
+
+    def get_file_size(file_path):
+        return os.stat(file_path).st_size
+
+    if os.path.isfile(path):
+        return get_file_size(path)
+
     total_size = 0
     for base, _dirs, files in os.walk(path):
-        total_size += sum(
-            os.stat(os.path.join(base, f)).st_size for f in files if os.path.isfile(os.path.join(base, f))
-        )
+        paths = [os.path.join(base, f) for f in files]
+        total_size += sum(get_file_size(p) for p in paths if os.path.isfile(p) and not os.path.islink(p))
     return total_size
 
 

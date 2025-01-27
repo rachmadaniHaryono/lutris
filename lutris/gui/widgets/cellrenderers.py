@@ -6,12 +6,14 @@ from math import floor
 
 import gi
 
+from lutris.util.jobs import schedule_at_idle
+from lutris.util.log import logger
+
 gi.require_version("PangoCairo", "1.0")
 
 import cairo
-from gi.repository import Gdk, GLib, GObject, Gtk, Pango, PangoCairo
+from gi.repository import Gdk, GObject, Gtk, Pango, PangoCairo
 
-from lutris.exceptions import MissingMediaError
 from lutris.gui.widgets.utils import (
     MEDIA_CACHE_INVALIDATED,
     get_default_icon_path,
@@ -21,6 +23,8 @@ from lutris.gui.widgets.utils import (
 )
 from lutris.services.service_media import resolve_media_path
 from lutris.util.path_cache import MISSING_GAMES
+
+_MEDIA_CACHE_GENERATION_NUMBER = 0
 
 
 class GridViewCellRendererText(Gtk.CellRendererText):
@@ -113,7 +117,6 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
         self.cached_surfaces_new = {}
         self.cached_surfaces_old = {}
         self.cached_surfaces_loaded = 0
-        self.cycle_cache_idle_id = None
         self.cached_surface_generation = 0
         self.badge_size = 0, 0
         self.badge_alpha = 0.6
@@ -270,10 +273,16 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
                     cr.paint_with_alpha(alpha)
                 cr.restore()
 
+                if inset_fraction > 0:
+                    # Since we are restoring a scale change _again_ we need
+                    # to update the layout with that change too, or the other text
+                    # in the view will be broken. So lame.
+                    layout = widget.create_pango_layout("")
+                    PangoCairo.update_layout(cr, layout)
+
             # Idle time will wait until the widget has drawn whatever it wants to;
             # we can then discard surfaces we aren't using anymore.
-            if not self.cycle_cache_idle_id:
-                self.cycle_cache_idle_id = GLib.idle_add(self.cycle_cache)
+            schedule_at_idle(self.cycle_cache)
 
     def select_badge_metrics(self, surface):
         """Updates fields holding data about the appearance of the badges;
@@ -395,10 +404,9 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
 
         icon_paths = []
         for p in platforms:
-            try:
-                icon_paths.append(get_runtime_icon_path(p + "-symbolic"))
-            except MissingMediaError:
-                continue  # just leave the missing icons out
+            icon_path = get_runtime_icon_path(p + "-symbolic")
+            if icon_path:
+                icon_paths.append(icon_path)
 
         GridViewCellRendererImage._platform_icon_paths[platform] = icon_paths
         return icon_paths
@@ -490,7 +498,7 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
         self.cached_surfaces_old.clear()
         self.cached_surfaces_new.clear()
 
-    def cycle_cache(self):
+    def cycle_cache(self) -> None:
         """Is the key cache size control trick. When called, the surfaces cached or used
         since the last call are preserved, but those not touched are discarded.
 
@@ -505,15 +513,14 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
             self.cached_surfaces_old = self.cached_surfaces_new
             self.cached_surfaces_new = {}
             self.cached_surfaces_loaded = 0
-        self.cycle_cache_idle_id = None
 
     def _get_cached_surface_by_path(self, widget, path, size=None, preserve_aspect_ratio=True):
         """This obtains the scaled surface to rander for a given media path; this is cached
         in this render, but we'll clear that cache when the media generation number is changed,
         or certain properties are. We also age surfaces from the cache at idle time after
         rendering."""
-        if self.cached_surface_generation != MEDIA_CACHE_INVALIDATED.generation_number:
-            self.cached_surface_generation = MEDIA_CACHE_INVALIDATED.generation_number
+        if self.cached_surface_generation != _MEDIA_CACHE_GENERATION_NUMBER:
+            self.cached_surface_generation = _MEDIA_CACHE_GENERATION_NUMBER
             self.clear_cache()
 
         key = widget, path, size, preserve_aspect_ratio
@@ -524,13 +531,11 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
         if key in self.cached_surfaces_old:
             surface = self.cached_surfaces_old[key]
         else:
-            try:
-                surface = self._get_surface_by_path(widget, path, size, preserve_aspect_ratio)
+            surface = self._get_surface_by_path(widget, path, size, preserve_aspect_ratio)
+            if surface:
                 # We cache missing surfaces too, but only a successful load trigger
                 # cache cycling
                 self.cached_surfaces_loaded += 1
-            except MissingMediaError:
-                surface = None
 
         self.cached_surfaces_new[key] = surface
         return surface
@@ -538,4 +543,23 @@ class GridViewCellRendererImage(Gtk.CellRenderer):
     def _get_surface_by_path(self, widget, path, size=None, preserve_aspect_ratio=True):
         cell_size = size or (self.media_width, self.media_height)
         scale_factor = widget.get_scale_factor() if widget else 1
-        return get_scaled_surface_by_path(path, cell_size, scale_factor, preserve_aspect_ratio=preserve_aspect_ratio)
+        try:
+            return get_scaled_surface_by_path(
+                path, cell_size, scale_factor, preserve_aspect_ratio=preserve_aspect_ratio
+            )
+        except Exception as ex:
+            # We need to survive nasty data in the media files, so the user can replace
+            # them.
+            logger.exception("Unable to load media '%s': %s", path, ex)
+            return None
+
+
+def _on_media_cached_invalidated() -> None:
+    # Increment a counter, so we can passively detect when the media cache is invalid
+    # without a per-object handler. We have no way to unregister that handler, but we never
+    # need to unregister this global one.
+    global _MEDIA_CACHE_GENERATION_NUMBER
+    _MEDIA_CACHE_GENERATION_NUMBER += 1
+
+
+MEDIA_CACHE_INVALIDATED.register(_on_media_cached_invalidated)

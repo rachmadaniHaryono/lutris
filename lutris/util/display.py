@@ -1,4 +1,5 @@
 """Module to deal with various aspects of displays"""
+
 # isort:skip_file
 import enum
 import os
@@ -6,7 +7,6 @@ import subprocess
 from typing import Any, Dict
 
 import gi
-
 
 try:
     gi.require_version("GnomeDesktop", "3.0")
@@ -44,6 +44,13 @@ def get_default_dpi():
             dpi = 96 * scale
             return int(dpi)
     return 96
+
+
+@cache_single
+def is_display_x11():
+    """True if"""
+    display = Gdk.Display.get_default()
+    return "x11" in type(display).__name__.casefold()
 
 
 class DisplayManager:
@@ -140,17 +147,11 @@ class DesktopEnvironment(enum.Enum):
 # These desktop environment use a compositor that can be detected with a specific
 # command, and which provide a definite answer; the DE can be asked to start and stop it..
 _compositor_commands_by_de = {
-    DesktopEnvironment.PLASMA: {
-        "check": ["qdbus", "org.kde.KWin", "/Compositor", "org.kde.kwin.Compositing.active"],
-        "active_result": b"true\n",
-        "stop_compositor": ["qdbus", "org.kde.KWin", "/Compositor", "org.kde.kwin.Compositing.suspend"],
-        "start_compositor": ["qdbus", "org.kde.KWin", "/Compositor", "org.kde.kwin.Compositing.resume"],
-    },
     DesktopEnvironment.MATE: {
-        "check": ["gsettings", "get org.mate.Marco.general", "compositing-manager"],
+        "check": ["gsettings", "get", "org.mate.Marco.general", "compositing-manager"],
         "active_result": b"true\n",
-        "stop_compositor": ["gsettings", "set org.mate.Marco.general", "compositing-manager", "false"],
-        "start_compositor": ["gsettings", "set org.mate.Marco.general", "compositing-manager", "true"],
+        "stop_compositor": ["gsettings", "set", "org.mate.Marco.general", "compositing-manager", "false"],
+        "start_compositor": ["gsettings", "set", "org.mate.Marco.general", "compositing-manager", "true"],
     },
     DesktopEnvironment.XFCE: {
         "check": ["xfconf-query", "--channel=xfwm4", "--property=/general/use_compositing"],
@@ -235,9 +236,10 @@ def _get_command_output(command):
         logger.error("Unable to run command, %s not found", command[0])
 
 
-def is_compositing_enabled():
+def is_compositing_enabled() -> bool:
     """Checks whether compositing is currently disabled or enabled.
-    Returns True for enabled, False for disabled, and None if unknown.
+    Returns True for enabled, False for disabled or if we didn't recognize
+    the compositor.
     """
 
     desktop_environment = get_desktop_environment()
@@ -249,8 +251,8 @@ def is_compositing_enabled():
         if _check_compositor_active(command_set):
             return True
 
-    # It might be a compositor we don't know about, so return None for unknown.
-    return None
+    # No compositor detected
+    return False
 
 
 def _check_compositor_active(command_set: Dict[str, Any]) -> bool:
@@ -319,8 +321,6 @@ def _run_command(*command, run_in_background=False):
 def disable_compositing():
     """Disable compositing if not already disabled."""
     compositing_enabled = is_compositing_enabled()
-    if compositing_enabled is None:
-        compositing_enabled = True
     if any(_COMPOSITING_DISABLED_STACK):
         compositing_enabled = False
     _COMPOSITING_DISABLED_STACK.append(compositing_enabled)

@@ -1,4 +1,5 @@
 """Functions to interact with the Lutris REST API"""
+
 import json
 import os
 import re
@@ -8,12 +9,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import OrderedDict
+from datetime import datetime
 from gettext import gettext as _
 from typing import Any, Dict, Optional, Tuple
 
 import requests
 
 from lutris import settings
+from lutris.gui.widgets import NotificationSource
 from lutris.util import cache_single, http, system
 from lutris.util.graphics.gpu import get_gpus_info
 from lutris.util.http import HTTPError, Request
@@ -42,12 +45,16 @@ def get_runtime_versions_date_time_ago() -> str:
 
 
 def check_stale_runtime_versions() -> bool:
-    """True if runtime versions file that download_runtime_versions() creates
-    is missing or stale; if true we must call that function."""
+    """Check if the runtime needs to be updated"""
     try:
-        threshold = time.time() + 6 * 60 * 60  # 6 hours from now
         modified_at = get_runtime_versions_date()
-        return threshold < modified_at
+        should_update_at = modified_at + 6 * 60 * 60
+        logger.debug(
+            "Modified at %s, will update after %s",
+            datetime.fromtimestamp(modified_at).strftime("%c"),
+            datetime.fromtimestamp(should_update_at).strftime("%c"),
+        )
+        return should_update_at < time.time()
     except FileNotFoundError:
         return True
 
@@ -95,6 +102,10 @@ def read_api_key():
     return {"token": token, "username": username}
 
 
+LUTRIS_ACCOUNT_CONNECTED = NotificationSource()
+LUTRIS_ACCOUNT_DISCONNECTED = NotificationSource()
+
+
 def connect(username, password):
     """Connect to the Lutris API"""
     login_url = settings.SITE_URL + "/api/accounts/token"
@@ -114,6 +125,7 @@ def connect(username, password):
             else:
                 with open(USER_INFO_FILE_PATH, "w", encoding="utf-8") as token_file:
                     json.dump(account_info, token_file, indent=2)
+            LUTRIS_ACCOUNT_CONNECTED.fire()
             return token
     except (
         requests.RequestException,
@@ -131,6 +143,7 @@ def disconnect():
     for file_path in [API_KEY_FILE_PATH, USER_INFO_FILE_PATH]:
         if system.path_exists(file_path):
             os.remove(file_path)
+    LUTRIS_ACCOUNT_DISCONNECTED.fire()
 
 
 def fetch_user_info():
@@ -178,22 +191,40 @@ def download_runner_versions(runner_name: str) -> list:
         runner_info = None
     if not runner_info:
         return []
-    versions = runner_info.get("versions") or []
-    return versions
+    return runner_info.get("versions") or []
 
 
 def format_runner_version(version_info: Dict[str, str]) -> str:
-    version = version_info.get("version")
-    if not version:
-        return ""
+    version = version_info.get("version") or ""
     arch = version_info.get("architecture")
+    return format_version_architecture(version, arch)
+
+
+def normalize_version_architecture(version_name: str) -> str:
+    """Ensures the version name has an architecture on the end ofit;
+    adds the system's architecture if it is missing."""
+    base_version, arch = parse_version_architecture(version_name)
+    return format_version_architecture(base_version, arch) if base_version else ""
+
+
+def format_version_architecture(base_version: str, arch: Optional[str] = None) -> str:
+    """Assembles a version with architecture from the version and architecture."""
+    if not base_version:
+        return ""
+
+    # A gross hack, since runner versions could be used with non-Wine runners,
+    # but it so happens we don't. 'GE-Proton' versions arbitrarily do not have
+    # an architecture on them - they are always 64-bit.
+    if base_version.startswith("GE-Proton"):
+        return base_version
+
     if arch:
-        return "{}-{}".format(version, arch)
+        return "{}-{}".format(base_version, arch)
 
-    return version
+    return base_version
 
 
-def parse_version_architecture(version_name: Optional[str]) -> Tuple[Optional[str], str]:
+def parse_version_architecture(version_name: str) -> Tuple[str, str]:
     """Splits a version that ends with an architecture into the plain version and
     architecture, as a tuple. If the version has no architecture, this provides
     the system's architecture instead."""
@@ -204,7 +235,66 @@ def parse_version_architecture(version_name: Optional[str]) -> Tuple[Optional[st
     return version_name, LINUX_SYSTEM.arch
 
 
-def get_default_runner_version_info(runner_name: str, version: str = None) -> Dict[str, str]:
+def get_runner_version_from_cache(runner_name: str, version: Optional[str]) -> Optional[Dict[str, str]]:
+    # Prefer to provide the info from our local cache if we can; if this can't find
+    # an unambiguous result, we'll fall back on the API which should know what the default is.
+    version, _arch = parse_version_architecture(version or "")
+    runtime_versions = get_runtime_versions()
+    if runtime_versions:
+        try:
+            runner_versions = runtime_versions["runners"][runner_name]
+            runner_versions = [r for r in runner_versions if r["architecture"] in (LINUX_SYSTEM.arch, "all")]
+            if version:
+                runner_versions = [r for r in runner_versions if r["version"] == version]
+            if len(runner_versions) == 1:
+                return runner_versions[0]
+        except KeyError:
+            pass
+    return None
+
+
+def iter_get_from_api_candidates(versions: list, version: Optional[str], arch: Optional[str]):
+    """A generator yielding possible version infos, or None for those that are available;
+    we pick the first non-None value yielded."""
+
+    def select_info(predicate=None, accept_ambiguous=False):
+        candidates = [v for v in versions if predicate(v)]
+
+        if candidates and (accept_ambiguous or len(candidates) == 1):
+            return candidates[0]
+
+        return None
+
+    if version:
+        yield select_info(lambda v: v["architecture"] == arch and v["version"] == version)
+    else:
+        yield select_info(lambda v: v["architecture"] == arch and v["default"])
+
+    # Try various fallbacks to get some version - we prefer the default version
+    # or a version with the right architecture.
+    yield select_info(lambda v: v["architecture"] == arch and v["default"])
+    yield select_info(lambda v: v["architecture"] == arch)
+
+    # 64-bit system can use 32-bit version, if it's the default.
+    if LINUX_SYSTEM.is_64_bit:
+        yield select_info(lambda v: v["default"])
+
+    yield select_info(lambda v: v["architecture"] == arch, accept_ambiguous=True)
+
+
+def get_runner_version_from_api(runner_name: str, version: Optional[str]) -> Optional[Dict[str, str]]:
+    version, arch = parse_version_architecture(version or "")
+    versions = download_runner_versions(runner_name)
+    for candidate in iter_get_from_api_candidates(versions, version, arch):
+        if candidate:
+            if not version:
+                return candidate
+            if version == candidate.get("version") and arch == candidate.get("architecture"):
+                return candidate
+    return None
+
+
+def get_default_runner_version_info(runner_name: str, version: Optional[str] = None) -> Optional[Dict[str, str]]:
     """Get the appropriate version for a runner
 
     Params:
@@ -215,71 +305,11 @@ def get_default_runner_version_info(runner_name: str, version: str = None) -> Di
         if the data can't be retrieved. If a pseudo-version is accepted, may be
         a dict containing only the version itself.
     """
-
-    version, arch = parse_version_architecture(version)
-
-    def get_from_cache():
-        # Prefer to provide the info from our local cache if we can; if this can't find
-        # an unambiguous result, we'll fall back on the API which should know what the default is.
-        runtime_versions = get_runtime_versions()
-        if runtime_versions:
-            try:
-                runner_versions = runtime_versions["runners"][runner_name]
-                runner_versions = [r for r in runner_versions if r["architecture"] in (LINUX_SYSTEM.arch, "all")]
-                if version:
-                    runner_versions = [r for r in runner_versions if r["version"] == version]
-                if len(runner_versions) == 1:
-                    return runner_versions[0]
-            except KeyError:
-                pass
-        return None
-
-    def iter_get_from_api_candidates():
-        """A generator yielding possible version infos, or None for those that are available;
-        we pick the first non-None value yielded."""
-        versions = download_runner_versions(runner_name)
-
-        def select_info(predicate=None, accept_ambiguous=False):
-            candidates = [v for v in versions if predicate(v)]
-
-            if candidates and (accept_ambiguous or len(candidates) == 1):
-                return candidates[0]
-
-            return None
-
-        if version:
-            yield select_info(lambda v: v["architecture"] == arch and v["version"] == version)
-        else:
-            yield select_info(lambda v: v["architecture"] == arch and v["default"])
-
-        # Try various fallbacks to get some version - we prefer the default version
-        # or a version with the right architecture.
-        yield select_info(lambda v: v["architecture"] == arch and v["default"])
-        yield select_info(lambda v: v["architecture"] == arch)
-
-        # 64-bit system can use 32-bit version, if it's the default.
-        if LINUX_SYSTEM.is_64_bit:
-            yield select_info(lambda v: v["default"])
-
-        yield select_info(lambda v: v["architecture"] == arch, accept_ambiguous=True)
-
-    def get_from_api():
-        logger.info(
-            "Getting runner information for %s%s",
-            runner_name,
-            " (version: %s)" % version if version else "",
-        )
-
-        for candidate in iter_get_from_api_candidates():
-            if candidate:
-                return candidate
-        return None
-
-    return get_from_cache() or get_from_api()
+    return get_runner_version_from_cache(runner_name, version) or get_runner_version_from_api(runner_name, version)
 
 
 @cache_single
-def get_default_wine_runner_version_info():
+def get_default_wine_runner_version_info() -> Optional[Dict[str, str]]:
     """Just returns the runner info for the default Wine, but with
     caching. This is just a little optimization."""
     return get_default_runner_version_info("wine")
@@ -501,7 +531,7 @@ def format_installer_url(installer_info):
     if launch_config_name:
         parts.append(launch_config_name)
 
-    parts = [urllib.parse.quote(str(part)) for part in parts]
+    parts = [urllib.parse.quote(str(part), safe="") for part in parts]
     path = "/".join(parts)
 
     if revision:

@@ -1,4 +1,5 @@
 """Transform runner parameters to data usable for runtime execution"""
+
 import os
 import shlex
 import stat
@@ -12,9 +13,10 @@ from lutris.util.log import logger
 def get_mangohud_conf(system_config):
     """Return correct launch arguments and environment variables for Mangohud."""
     # The environment variable should be set to 0 on gamescope, otherwise the game will crash
-    mangohud_val = "0" if system_config.get("gamescope") else "1"
+    if system_config.get("gamescope"):
+        return None, None
     if system_config.get("mangohud") and system.can_find_executable("mangohud"):
-        return ["mangohud"], {"MANGOHUD": mangohud_val, "MANGOHUD_DLSYM": "1"}
+        return ["mangohud"], {"MANGOHUD": "1", "MANGOHUD_DLSYM": "1"}
     return None, None
 
 
@@ -23,19 +25,10 @@ def get_launch_parameters(runner, gameplay_info):
     launch_arguments = gameplay_info["command"]
     env = {}
 
-    # Steam compatibility
-    if os.environ.get("SteamAppId"):
-        logger.info("Game launched from steam (AppId: %s)", os.environ["SteamAppId"])
-        env["LC_ALL"] = ""
-
-    # Set correct LC_ALL depending on user settings
-    if system_config["locale"] != "":
-        env["LC_ALL"] = system_config["locale"]
-
     # MangoHud
     if runner.name == "steam":
         logger.info(
-            "Do not enable Mangodhud for Steam games in Lutris. "
+            "Do not enable Mangodhud for Steam games in Lutris."
             "Edit the launch options in Steam and set them to mangohud %%command%%"
         )
     else:
@@ -88,6 +81,8 @@ def get_launch_parameters(runner, gameplay_info):
     has_gamescope = system_config.get("gamescope") and system.can_find_executable("gamescope")
     if has_gamescope:
         launch_arguments = get_gamescope_args(launch_arguments, system_config)
+        if system_config.get("gamescope_hdr"):
+            env["DXVK_HDR"] = "1"
 
     return launch_arguments, env
 
@@ -98,8 +93,7 @@ def get_gamescope_args(launch_arguments, system_config):
     if system_config.get("gamescope_force_grab_cursor"):
         launch_arguments.insert(0, "--force-grab-cursor")
     if system_config.get("gamescope_fsr_sharpness"):
-        gamescope_fsr_sharpness = system_config["gamescope_fsr_sharpness"]
-        launch_arguments.insert(0, gamescope_fsr_sharpness)
+        launch_arguments.insert(0, system_config["gamescope_fsr_sharpness"])
         launch_arguments.insert(0, "--fsr-sharpness")
         launch_arguments[0:0] = _get_gamescope_fsr_option()
     if system_config.get("gamescope_flags"):
@@ -124,10 +118,14 @@ def get_gamescope_args(launch_arguments, system_config):
         launch_arguments.insert(0, "-h")
         launch_arguments.insert(0, game_width)
         launch_arguments.insert(0, "-w")
-    if system_config.get("gpu") and len(GPUS) > 1:
+    if len(GPUS) > 1 and system_config.get("gpu") in GPUS:
         gpu = GPUS[system_config["gpu"]]
         launch_arguments.insert(0, gpu.pci_id)
         launch_arguments.insert(0, "--prefer-vk-device")
+    if system_config.get("gamescope_hdr"):
+        launch_arguments.insert(0, "--hdr-enabled")
+    if system_config.get("mangohud"):
+        launch_arguments.insert(0, "--mangoapp")
     launch_arguments.insert(0, "gamescope")
     return launch_arguments
 

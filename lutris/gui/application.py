@@ -28,34 +28,34 @@ from typing import List
 
 import gi
 
+from ..util.busy import BusyAsyncCall
+
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gio, GLib, GObject, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from lutris import settings
 from lutris.api import get_runners, parse_installer_url
-from lutris.command import exec_command
 from lutris.database import games as games_db
 from lutris.database.services import ServiceGameCollection
 from lutris.exception_backstops import init_exception_backstops
-from lutris.game import Game, export_game, import_game
-from lutris.gui.config.preferences_dialog import PreferencesDialog
-from lutris.gui.dialogs import ErrorDialog, InstallOrPlayDialog, NoticeDialog
+from lutris.game import GAME_START, GAME_STOPPED, Game, export_game, import_game
+from lutris.gui.dialogs import ErrorDialog, InstallOrPlayDialog, NoticeDialog, display_error
 from lutris.gui.dialogs.delegates import CommandLineUIDelegate, InstallUIDelegate, LaunchUIDelegate
 from lutris.gui.dialogs.issue import IssueReportWindow
 from lutris.gui.installerwindow import InstallationKind, InstallerWindow
 from lutris.gui.widgets.status_icon import LutrisStatusIcon
 from lutris.installer import get_installers
 from lutris.migrations import migrate
+from lutris.monitored_command import exec_command
 from lutris.runners import InvalidRunnerError, RunnerInstallationError, get_runner_names, import_runner
 from lutris.services import get_enabled_services
 from lutris.startup import init_lutris, run_all_checks
 from lutris.style_manager import StyleManager
 from lutris.util import datapath, log, system
 from lutris.util.http import HTTPError, Request
-from lutris.util.jobs import AsyncCall
-from lutris.util.log import logger
+from lutris.util.log import file_handler, logger
 from lutris.util.savesync import save_check, show_save_stats, upload_save
 from lutris.util.steam.appmanifest import AppManifest, get_appmanifests
 from lutris.util.steam.config import get_steamapps_dirs
@@ -77,11 +77,12 @@ class Application(Gtk.Application):
         # established; this will apply to all connections from this point forward.
         init_exception_backstops()
 
-        GObject.add_emission_hook(Game, "game-start", self.on_game_start)
-        GObject.add_emission_hook(Game, "game-stopped", self.on_game_stopped)
-        GObject.add_emission_hook(PreferencesDialog, "settings-changed", self.on_settings_changed)
+        GAME_START.register(self.on_game_start)
+        GAME_STOPPED.register(self.on_game_stopped)
+        settings.SETTINGS_CHANGED.register(self.on_settings_changed)
 
         GLib.set_application_name(_("Lutris"))
+        GLib.set_prgname("net.lutris.Lutris")
         self.force_updates = False
         self.css_provider = Gtk.CssProvider.new()
         self.window = None
@@ -329,6 +330,7 @@ class Application(Gtk.Application):
     def do_startup(self):  # pylint: disable=arguments-differ
         """Sets up the application on first start."""
         Gtk.Application.do_startup(self)
+        file_handler.doRollover()
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         action = Gio.SimpleAction.new("quit")
@@ -361,11 +363,12 @@ class Application(Gtk.Application):
             return kwargs["game"].id
         return str(kwargs)
 
-    def show_window(self, window_class, **kwargs):
+    def show_window(self, window_class, update_function=None, **kwargs):
         """Instantiate a window keeping 1 instance max
 
         Params:
             window_class (Gtk.Window): class to create the instance from
+            update_function (Callable): Function to initialize or update the window (if possible before being shown)
             kwargs (dict): Additional arguments to pass to the instanciated window
 
         Returns:
@@ -374,7 +377,10 @@ class Application(Gtk.Application):
         window_key = str(window_class.__name__) + self.get_window_key(**kwargs)
         if self.app_windows.get(window_key):
             self.app_windows[window_key].present()
-            return self.app_windows[window_key]
+            window_inst = self.app_windows[window_key]
+            if update_function:
+                update_function(window_inst)
+            return window_inst
         if issubclass(window_class, Gtk.Dialog):
             if "parent" in kwargs:
                 window_inst = window_class(**kwargs)
@@ -384,8 +390,9 @@ class Application(Gtk.Application):
         else:
             window_inst = window_class(application=self, **kwargs)
         window_inst.connect("destroy", self.on_app_window_destroyed, self.get_window_key(**kwargs))
+        if update_function:
+            update_function(window_inst)
         self.app_windows[window_key] = window_inst
-        logger.debug("Showing window %s", window_key)
         window_inst.show()
         return window_inst
 
@@ -397,20 +404,19 @@ class Application(Gtk.Application):
     def show_lutris_installer_window(self, game_slug):
         def on_installers_ready(installers, error):
             if error:
-                ErrorDialog(error, parent=self.window)
+                display_error(error, parent=self.window)
             elif installers:
                 self.show_installer_window(installers)
             else:
                 ErrorDialog(_("No installer available."), parent=self.window)
 
-        AsyncCall(get_installers, on_installers_ready, game_slug=game_slug)
+        BusyAsyncCall(get_installers, on_installers_ready, game_slug=game_slug)
 
     def on_app_window_destroyed(self, app_window, window_key):
         """Remove the reference to the window when it has been destroyed"""
         window_key = str(app_window.__class__.__name__) + window_key
         try:
             del self.app_windows[window_key]
-            logger.debug("Removed window %s", window_key)
         except KeyError:
             logger.warning("Failed to remove window %s", window_key)
             logger.info("Available windows: %s", ", ".join(self.app_windows.keys()))
@@ -426,12 +432,11 @@ class Application(Gtk.Application):
         The script is capable of launching a game without the client
         """
 
-        def on_error(game, error):
+        def on_error(error: BaseException) -> None:
             logger.exception("Unable to generate script: %s", error)
-            return True
 
         game = Game(db_game["id"])
-        game.connect("game-error", on_error)
+        game.game_error.register(on_error)
         game.reload_config()
         game.write_script(script_path, self.launch_ui_delegate)
 
@@ -746,17 +751,16 @@ class Application(Gtk.Application):
                     self.quit()
                 return 0
 
-            def on_error(game, error):
+            def on_error(error: BaseException) -> None:
                 logger.exception("Unable to launch game: %s", error)
-                return True
 
             game = Game(db_game["id"])
-            game.connect("game-error", on_error)
+            game.game_error.register(on_error)
             game.launch(self.launch_ui_delegate)
 
             if game.state == game.STATE_STOPPED and not self.window.is_visible():
                 self.quit()
-        else:
+        elif self.window:
             # If we're showing the window, it will handle the delegated UI
             # from here on out, no matter what command line we got.
             self.launch_ui_delegate = self.window
@@ -767,21 +771,20 @@ class Application(Gtk.Application):
             self.quit_on_game_exit = False
         return 0
 
-    def on_settings_changed(self, dialog, state, setting_key):
-        if setting_key == "dark_theme":
-            self.style_manager.is_config_dark = state
+    def on_settings_changed(self, setting_key, new_value):
+        if setting_key == "preferred_theme":
+            self.style_manager.preferred_theme = new_value
         elif setting_key == "show_tray_icon" and self.window:
             if self.window.get_visible():
                 self.set_tray_icon()
         return True
 
-    def on_game_start(self, game):
+    def on_game_start(self, game: Game) -> None:
         self._running_games.append(game)
-        if settings.read_setting("hide_client_on_game_start") == "True":
+        if self.window and settings.read_bool_setting("hide_client_on_game_start"):
             self.window.hide()  # Hide launcher window
-        return True
 
-    def on_game_stopped(self, game):
+    def on_game_stopped(self, game: Game) -> None:
         """Callback to quit Lutris is last game stops while the window is hidden."""
         running_game_ids = [g.id for g in self._running_games]
         if game.id in running_game_ids:
@@ -795,13 +798,12 @@ class Application(Gtk.Application):
         else:
             logger.debug("Game has already been removed from running IDs?")
 
-        if settings.read_bool_setting("hide_client_on_game_start") and not self.quit_on_game_exit:
+        if self.window and settings.read_bool_setting("hide_client_on_game_start") and not self.quit_on_game_exit:
             self.window.show()  # Show launcher window
-        elif not self.window.is_visible():
+        elif not self.window or not self.window.is_visible():
             if not self.has_running_games:
                 if self.quit_on_game_exit or not self.has_tray_icon():
                     self.quit()
-        return True
 
     def get_launch_ui_delegate(self):
         return self.launch_ui_delegate

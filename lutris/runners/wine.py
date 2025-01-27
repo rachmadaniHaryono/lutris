@@ -1,12 +1,13 @@
 """Wine runner"""
+
 # pylint: disable=too-many-lines
 import os
 import shlex
 from gettext import gettext as _
-from typing import Dict, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from lutris import runtime, settings
-from lutris.api import format_runner_version
+from lutris.api import format_runner_version, normalize_version_architecture
 from lutris.config import LutrisConfig
 from lutris.database.games import get_game_by_field
 from lutris.exceptions import (
@@ -38,7 +39,9 @@ from lutris.util.display import DISPLAY_MANAGER, get_default_dpi
 from lutris.util.graphics import drivers, vkquery
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
+from lutris.util.process import Process
 from lutris.util.strings import split_arguments
+from lutris.util.wine import proton
 from lutris.util.wine.d3d_extras import D3DExtrasManager
 from lutris.util.wine.dgvoodoo2 import dgvoodoo2Manager
 from lutris.util.wine.dxvk import REQUIRED_VULKAN_API_VERSION, DXVKManager
@@ -48,15 +51,14 @@ from lutris.util.wine.prefix import DEFAULT_DLL_OVERRIDES, WinePrefixManager, fi
 from lutris.util.wine.vkd3d import VKD3DManager
 from lutris.util.wine.wine import (
     WINE_DEFAULT_ARCH,
-    WINE_DIR,
     WINE_PATHS,
     detect_arch,
     get_default_wine_runner_version_info,
     get_default_wine_version,
     get_installed_wine_versions,
     get_overrides_env,
-    get_proton_paths,
     get_real_executable,
+    get_runner_files_dir_for_version,
     get_system_wine_version,
     get_wine_path_for_version,
     is_esync_limit_set,
@@ -65,18 +67,33 @@ from lutris.util.wine.wine import (
 )
 
 
-def _get_prefix_warning(config, _option_key):
-    if config.get("prefix"):
+def _is_pre_proton(_option_key: str, config: LutrisConfig) -> bool:
+    version = config.runner_config.get("version")
+    return not proton.is_proton_version(version)
+
+
+def _get_version_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
+    arch = config.game_config.get("arch")
+    version = config.runner_config.get("version")
+    if arch == "win32" and proton.is_proton_version(version):
+        return _("Proton is not compatible with 32-bit prefixes.")
+
+    return None
+
+
+def _get_prefix_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
+    game_config = config.game_config
+    if game_config.get("prefix"):
         return None
 
-    exe = config.get("exe")
+    exe = game_config.get("exe")
     if exe and find_prefix(exe):
         return None
 
     return _("<b>Warning</b> Some Wine configuration options cannot be applied, if no prefix can be found.")
 
 
-def _get_dxvk_warning(config, option_key):
+def _get_dxvk_warning() -> Optional[str]:
     if drivers.is_outdated():
         driver_info = drivers.get_nvidia_driver_info()
         return _(
@@ -88,10 +105,10 @@ def _get_dxvk_warning(config, option_key):
     return None
 
 
-def _get_simple_vulkan_support_error(config, option_key, feature):
+def _get_simple_vulkan_support_error(option_key: str, config: LutrisConfig, feature: str) -> Optional[str]:
     if os.environ.get("LUTRIS_NO_VKQUERY"):
         return None
-    if config.get(option_key) and not LINUX_SYSTEM.is_vulkan_supported():
+    if config.runner_config.get(option_key) and not LINUX_SYSTEM.is_vulkan_supported():
         return (
             _("<b>Error</b> Vulkan is not installed or is not supported by your system, " "%s is not available.")
             % feature
@@ -99,11 +116,12 @@ def _get_simple_vulkan_support_error(config, option_key, feature):
     return None
 
 
-def _get_dxvk_version_warning(config, _option_key):
+def _get_dxvk_version_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
     if os.environ.get("LUTRIS_NO_VKQUERY"):
         return None
-    if config.get("dxvk") and LINUX_SYSTEM.is_vulkan_supported():
-        version = config.get("dxvk_version")
+    runner_config = config.runner_config
+    if runner_config.get("dxvk") and LINUX_SYSTEM.is_vulkan_supported():
+        version = runner_config.get("dxvk_version")
         if version and not version.startswith("v1."):
             library_api_version = vkquery.get_vulkan_api_version()
             if library_api_version and library_api_version < REQUIRED_VULKAN_API_VERSION:
@@ -127,8 +145,8 @@ def _get_dxvk_version_warning(config, _option_key):
     return None
 
 
-def _get_esync_warning(config, _option_key):
-    if config.get("esync"):
+def _get_esync_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
+    if config.runner_config.get("esync"):
         limits_set = is_esync_limit_set()
         if not limits_set:
             return _(
@@ -139,22 +157,44 @@ def _get_esync_warning(config, _option_key):
     return ""
 
 
-def _get_fsync_warning(config, _option_key):
-    if config.get("fsync"):
+def _get_fsync_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
+    if config.runner_config.get("fsync"):
         fsync_supported = is_fsync_supported()
         if not fsync_supported:
             return _("<b>Warning</b> Your kernel is not patched for fsync.")
-        return ""
+    return None
 
 
-def _get_virtual_desktop_warning(config, _option_key):
+def _get_virtual_desktop_warning(_option_key: str, config: LutrisConfig) -> Optional[str]:
     message = _("Wine virtual desktop is no longer supported")
-    if config.get("Desktop"):
-        version = str(config.get("version")).casefold()
+    runner_config = config.runner_config
+    if runner_config.get("Desktop"):
+        version = str(runner_config.get("version")).casefold()
         if "-ge-" in version or "proton" in version:
             message += "\n"
             message += _("Virtual desktops cannot be enabled in Proton or GE Wine versions.")
     return message
+
+
+def _get_wine_version_choices():
+    version_choices = [(_("Custom (select executable below)"), "custom")]
+    labels = {
+        "winehq-devel": _("WineHQ Devel ({})"),
+        "winehq-staging": _("WineHQ Staging ({})"),
+        "wine-development": _("Wine Development ({})"),
+        "system": _("System ({})"),
+    }
+    versions = get_installed_wine_versions()
+    for version in versions:
+        if version in labels:
+            version_number = get_system_wine_version(WINE_PATHS[version])
+            label = labels[version].format(version_number)
+        elif version == "ge-proton":
+            label = _("GE-Proton (Latest)")
+        else:
+            label = version
+        version_choices.append((label, version))
+    return version_choices
 
 
 class wine(Runner):
@@ -163,7 +203,6 @@ class wine(Runner):
     platforms = [_("Windows")]
     multiple_versions = True
     entry_point_option = "exe"
-    has_runner_versions = True
 
     game_options = [
         {
@@ -181,7 +220,7 @@ class wine(Runner):
         },
         {
             "option": "working_dir",
-            "type": "directory_chooser",
+            "type": "directory",
             "label": _("Working directory"),
             "help": _(
                 "The location where the game is run from.\n"
@@ -191,7 +230,7 @@ class wine(Runner):
         },
         {
             "option": "prefix",
-            "type": "directory_chooser",
+            "type": "directory",
             "label": _("Wine prefix"),
             "warning": _get_prefix_warning,
             "help": _(
@@ -207,6 +246,347 @@ class wine(Runner):
             "choices": [(_("Auto"), "auto"), (_("32-bit"), "win32"), (_("64-bit"), "win64")],
             "default": "auto",
             "help": _("The architecture of the Windows environment"),
+        },
+        {
+            "option": "desktop_integration",
+            "type": "bool",
+            "label": _("Integrate system files in the prefix"),
+            "default": False,
+            "advanced": True,
+            "help": _(
+                "Place 'Documents', 'Pictures', and similar files in your home folder, instead of "
+                "keeping them in the game's prefix. This includes some saved games."
+            ),
+        },
+    ]
+
+    runner_options = [
+        {
+            "option": "version",
+            "label": _("Wine version"),
+            "type": "choice",
+            "choices": _get_wine_version_choices,
+            "default": get_default_wine_version,
+            "warning": _get_version_warning,
+            "help": _(
+                "The version of Wine used to launch the game.\n"
+                "Using the last version is generally recommended, "
+                "but some games work better on older versions."
+            ),
+        },
+        {
+            "option": "custom_wine_path",
+            "label": _("Custom Wine executable"),
+            "type": "file",
+            "advanced": True,
+            "help": _("The Wine executable to be used if you have " 'selected "Custom" as the Wine version.'),
+        },
+        {
+            "option": "system_winetricks",
+            "label": _("Use system winetricks"),
+            "type": "bool",
+            "default": False,
+            "advanced": True,
+            "help": _("Switch on to use /usr/bin/winetricks for winetricks."),
+        },
+        {
+            "option": "dxvk",
+            "section": _("Graphics"),
+            "label": _("Enable DXVK"),
+            "type": "bool",
+            "default": True,
+            "visible": _is_pre_proton,
+            "warning": _get_dxvk_warning,
+            "error": lambda k, c: _get_simple_vulkan_support_error(k, c, _("DXVK")),
+            "active": True,
+            "help": _(
+                "Use DXVK to "
+                "increase compatibility and performance in Direct3D 11, 10 "
+                "and 9 applications by translating their calls to Vulkan."
+            ),
+        },
+        {
+            "option": "dxvk_version",
+            "section": _("Graphics"),
+            "label": _("DXVK version"),
+            "advanced": True,
+            "type": "choice_with_entry",
+            "visible": _is_pre_proton,
+            "condition": LINUX_SYSTEM.is_vulkan_supported(),
+            "conditional_on": "dxvk",
+            "choices": lambda: DXVKManager().version_choices,
+            "default": lambda: DXVKManager().version,
+            "warning": _get_dxvk_version_warning,
+        },
+        {
+            "option": "vkd3d",
+            "section": _("Graphics"),
+            "label": _("Enable VKD3D"),
+            "type": "bool",
+            "visible": _is_pre_proton,
+            "error": lambda k, c: _get_simple_vulkan_support_error(k, c, _("VKD3D")),
+            "default": True,
+            "active": True,
+            "help": _(
+                "Use VKD3D to enable support for Direct3D 12 " "applications by translating their calls to Vulkan."
+            ),
+        },
+        {
+            "option": "vkd3d_version",
+            "section": _("Graphics"),
+            "label": _("VKD3D version"),
+            "advanced": True,
+            "type": "choice_with_entry",
+            "visible": _is_pre_proton,
+            "condition": LINUX_SYSTEM.is_vulkan_supported(),
+            "conditional_on": "vkd3d",
+            "choices": lambda: VKD3DManager().version_choices,
+            "default": lambda: VKD3DManager().version,
+        },
+        {
+            "option": "d3d_extras",
+            "section": _("Graphics"),
+            "label": _("Enable D3D Extras"),
+            "type": "bool",
+            "default": True,
+            "advanced": True,
+            "visible": _is_pre_proton,
+            "help": _(
+                "Replace Wine's D3DX and D3DCOMPILER libraries with alternative ones. "
+                "Needed for proper functionality of DXVK with some games."
+            ),
+        },
+        {
+            "option": "d3d_extras_version",
+            "section": _("Graphics"),
+            "label": _("D3D Extras version"),
+            "advanced": True,
+            "visible": _is_pre_proton,
+            "conditional_on": "d3d_extras",
+            "type": "choice_with_entry",
+            "choices": lambda: D3DExtrasManager().version_choices,
+            "default": lambda: D3DExtrasManager().version,
+        },
+        {
+            "option": "dxvk_nvapi",
+            "section": _("Graphics"),
+            "label": _("Enable DXVK-NVAPI / DLSS"),
+            "type": "bool",
+            "error": lambda k, c: _get_simple_vulkan_support_error(k, c, _("DXVK-NVAPI / DLSS")),
+            "default": True,
+            "advanced": True,
+            "visible": _is_pre_proton,
+            "help": _("Enable emulation of Nvidia's NVAPI and add DLSS support, if available."),
+        },
+        {
+            "option": "dxvk_nvapi_version",
+            "section": _("Graphics"),
+            "label": _("DXVK NVAPI version"),
+            "advanced": True,
+            "conditional_on": "dxvk_nvapi",
+            "visible": _is_pre_proton,
+            "type": "choice_with_entry",
+            "choices": lambda: DXVKNVAPIManager().version_choices,
+            "default": lambda: DXVKNVAPIManager().version,
+        },
+        {
+            "option": "dgvoodoo2",
+            "section": _("Graphics"),
+            "label": _("Enable dgvoodoo2"),
+            "type": "bool",
+            "default": False,
+            "advanced": False,
+            "help": _(
+                "dgvoodoo2 is an alternative translation layer for rendering old games "
+                "that utilize D3D1-7 and Glide APIs. As it translates to D3D11, it's "
+                "recommended to use it in combination with DXVK. Only 32-bit apps are supported."
+            ),
+        },
+        {
+            "option": "dgvoodoo2_version",
+            "section": _("Graphics"),
+            "label": _("dgvoodoo2 version"),
+            "advanced": True,
+            "type": "choice_with_entry",
+            "choices": lambda: dgvoodoo2Manager().version_choices,
+            "default": lambda: dgvoodoo2Manager().version,
+            "conditional_on": "dgvoodoo2",
+        },
+        {
+            "option": "esync",
+            "label": _("Enable Esync"),
+            "type": "bool",
+            "warning": _get_esync_warning,
+            "active": True,
+            "default": True,
+            "help": _(
+                "Enable eventfd-based synchronization (esync). "
+                "This will increase performance in applications "
+                "that take advantage of multi-core processors."
+            ),
+        },
+        {
+            "option": "fsync",
+            "label": _("Enable Fsync"),
+            "type": "bool",
+            "default": is_fsync_supported(),
+            "warning": _get_fsync_warning,
+            "active": True,
+            "help": _(
+                "Enable futex-based synchronization (fsync). "
+                "This will increase performance in applications "
+                "that take advantage of multi-core processors. "
+                "Requires kernel 5.16 or above."
+            ),
+        },
+        {
+            "option": "fsr",
+            "label": _("Enable AMD FidelityFX Super Resolution (FSR)"),
+            "type": "bool",
+            "default": True,
+            "help": _(
+                "Use FSR to upscale the game window to native resolution.\n"
+                "Requires Lutris Wine FShack >= 6.13 and setting the game to a lower resolution.\n"
+                "Does not work with games running in borderless window mode or that perform their own upscaling."
+            ),
+        },
+        {
+            "option": "battleye",
+            "label": _("Enable BattlEye Anti-Cheat"),
+            "type": "bool",
+            "default": True,
+            "help": _(
+                "Enable support for BattlEye Anti-Cheat in supported games\n"
+                "Requires Lutris Wine 6.21-2 and newer or any other compatible Wine build.\n"
+            ),
+        },
+        {
+            "option": "eac",
+            "label": _("Enable Easy Anti-Cheat"),
+            "type": "bool",
+            "default": True,
+            "help": _(
+                "Enable support for Easy Anti-Cheat in supported games\n"
+                "Requires Lutris Wine 7.2 and newer or any other compatible Wine build.\n"
+            ),
+        },
+        {
+            "option": "Desktop",
+            "section": _("Virtual Desktop"),
+            "label": _("Windowed (virtual desktop)"),
+            "type": "bool",
+            "advanced": True,
+            "warning": _get_virtual_desktop_warning,
+            "default": False,
+            "help": _(
+                "Run the whole Windows desktop in a window.\n"
+                "Otherwise, run it fullscreen.\n"
+                "This corresponds to Wine's Virtual Desktop option."
+            ),
+        },
+        {
+            "option": "WineDesktop",
+            "section": _("Virtual Desktop"),
+            "label": _("Virtual desktop resolution"),
+            "type": "choice_with_entry",
+            "conditional_on": "Desktop",
+            "advanced": True,
+            "choices": DISPLAY_MANAGER.get_resolutions,
+            "help": _("The size of the virtual desktop in pixels."),
+        },
+        {
+            "option": "Dpi",
+            "section": _("DPI"),
+            "label": _("Enable DPI Scaling"),
+            "type": "bool",
+            "advanced": True,
+            "default": False,
+            "help": _(
+                "Enables the Windows application's DPI scaling.\n"
+                "Otherwise, the Screen Resolution option in 'Wine configuration' controls this."
+            ),
+        },
+        {
+            "option": "ExplicitDpi",
+            "section": _("DPI"),
+            "label": _("DPI"),
+            "type": "string",
+            "conditional_on": "Dpi",
+            "advanced": True,
+            "help": _(
+                "The DPI to be used if 'Enable DPI Scaling' is turned on.\n"
+                "If blank or 'auto', Lutris will auto-detect this."
+            ),
+        },
+        {
+            "option": "MouseWarpOverride",
+            "label": _("Mouse Warp Override"),
+            "type": "choice",
+            "choices": [
+                (_("Enable"), "enable"),
+                (_("Disable"), "disable"),
+                (_("Force"), "force"),
+            ],
+            "default": "enable",
+            "advanced": True,
+            "help": _(
+                "Override the default mouse pointer warping behavior\n"
+                "<b>Enable</b>: (Wine default) warp the pointer when the "
+                "mouse is exclusively acquired \n"
+                "<b>Disable</b>: never warp the mouse pointer \n"
+                "<b>Force</b>: always warp the pointer"
+            ),
+        },
+        {
+            "option": "Audio",
+            "label": _("Audio driver"),
+            "type": "choice",
+            "advanced": True,
+            "choices": [
+                (_("Auto"), "auto"),
+                ("ALSA", "alsa"),
+                ("PulseAudio", "pulse"),
+                ("OSS", "oss"),
+            ],
+            "default": "auto",
+            "help": _(
+                "Which audio backend to use.\n" "By default, Wine automatically picks the right one " "for your system."
+            ),
+        },
+        {
+            "option": "overrides",
+            "type": "mapping",
+            "label": _("DLL overrides"),
+            "help": _("Sets WINEDLLOVERRIDES when launching the game."),
+        },
+        {
+            "option": "show_debug",
+            "label": _("Output debugging info"),
+            "type": "choice",
+            "choices": [
+                (_("Disabled"), "-all"),
+                (_("Enabled"), ""),
+                (_("Inherit from environment"), "inherit"),
+                (_("Show FPS"), "+fps"),
+                (_("Full (CAUTION: Will cause MASSIVE slowdown)"), "+all"),
+            ],
+            "default": "-all",
+            "help": _("Output debugging information in the game log " "(might affect performance)"),
+        },
+        {
+            "option": "ShowCrashDialog",
+            "label": _("Show crash dialogs"),
+            "type": "bool",
+            "default": False,
+            "advanced": True,
+        },
+        {
+            "option": "autoconf_joypad",
+            "type": "bool",
+            "label": _("Autoconfigure joypads"),
+            "advanced": True,
+            "default": False,
+            "help": _("Automatically disables one of Wine's detected joypad " "to avoid having 2 controllers detected"),
         },
     ]
 
@@ -235,364 +615,6 @@ class wine(Runner):
         self._working_dir = working_dir
         self._wine_arch = wine_arch
         self.dll_overrides = DEFAULT_DLL_OVERRIDES.copy()  # we'll modify this, so we better copy it
-
-        def get_wine_version_choices():
-            version_choices = [(_("Custom (select executable below)"), "custom")]
-            labels = {
-                "winehq-devel": _("WineHQ Devel ({})"),
-                "winehq-staging": _("WineHQ Staging ({})"),
-                "wine-development": _("Wine Development ({})"),
-                "system": _("System ({})"),
-            }
-            versions = get_installed_wine_versions()
-            for version in versions:
-                if version in labels:
-                    version_number = get_system_wine_version(WINE_PATHS[version])
-                    label = labels[version].format(version_number)
-                else:
-                    label = version
-                version_choices.append((label, version))
-            return version_choices
-
-        self.runner_options = [
-            {
-                "option": "version",
-                "label": _("Wine version"),
-                "type": "choice",
-                "choices": get_wine_version_choices,
-                "default": get_default_wine_version,
-                "help": _(
-                    "The version of Wine used to launch the game.\n"
-                    "Using the last version is generally recommended, "
-                    "but some games work better on older versions."
-                ),
-            },
-            {
-                "option": "custom_wine_path",
-                "label": _("Custom Wine executable"),
-                "type": "file",
-                "advanced": True,
-                "help": _("The Wine executable to be used if you have " 'selected "Custom" as the Wine version.'),
-            },
-            {
-                "option": "system_winetricks",
-                "label": _("Use system winetricks"),
-                "type": "bool",
-                "default": False,
-                "advanced": True,
-                "help": _("Switch on to use /usr/bin/winetricks for winetricks."),
-            },
-            {
-                "option": "dxvk",
-                "section": _("Graphics"),
-                "label": _("Enable DXVK"),
-                "type": "bool",
-                "default": True,
-                "warning": _get_dxvk_warning,
-                "error": lambda c, k: _get_simple_vulkan_support_error(c, k, _("DXVK")),
-                "active": True,
-                "help": _(
-                    "Use DXVK to "
-                    "increase compatibility and performance in Direct3D 11, 10 "
-                    "and 9 applications by translating their calls to Vulkan."
-                ),
-            },
-            {
-                "option": "dxvk_version",
-                "section": _("Graphics"),
-                "label": _("DXVK version"),
-                "advanced": True,
-                "type": "choice_with_entry",
-                "condition": LINUX_SYSTEM.is_vulkan_supported(),
-                "choices": DXVKManager().version_choices,
-                "default": DXVKManager().version,
-                "warning": _get_dxvk_version_warning,
-            },
-            {
-                "option": "vkd3d",
-                "section": _("Graphics"),
-                "label": _("Enable VKD3D"),
-                "type": "bool",
-                "error": lambda c, k: _get_simple_vulkan_support_error(c, k, _("VKD3D")),
-                "default": True,
-                "active": True,
-                "help": _(
-                    "Use VKD3D to enable support for Direct3D 12 " "applications by translating their calls to Vulkan."
-                ),
-            },
-            {
-                "option": "vkd3d_version",
-                "section": _("Graphics"),
-                "label": _("VKD3D version"),
-                "advanced": True,
-                "type": "choice_with_entry",
-                "condition": LINUX_SYSTEM.is_vulkan_supported(),
-                "choices": VKD3DManager().version_choices,
-                "default": VKD3DManager().version,
-            },
-            {
-                "option": "d3d_extras",
-                "section": _("Graphics"),
-                "label": _("Enable D3D Extras"),
-                "type": "bool",
-                "default": True,
-                "advanced": True,
-                "help": _(
-                    "Replace Wine's D3DX and D3DCOMPILER libraries with alternative ones. "
-                    "Needed for proper functionality of DXVK with some games."
-                ),
-            },
-            {
-                "option": "d3d_extras_version",
-                "section": _("Graphics"),
-                "label": _("D3D Extras version"),
-                "advanced": True,
-                "type": "choice_with_entry",
-                "choices": D3DExtrasManager().version_choices,
-                "default": D3DExtrasManager().version,
-            },
-            {
-                "option": "dxvk_nvapi",
-                "section": _("Graphics"),
-                "label": _("Enable DXVK-NVAPI / DLSS"),
-                "type": "bool",
-                "error": lambda c, k: _get_simple_vulkan_support_error(c, k, _("DXVK-NVAPI / DLSS")),
-                "default": True,
-                "advanced": True,
-                "help": _("Enable emulation of Nvidia's NVAPI and add DLSS support, if available."),
-            },
-            {
-                "option": "dxvk_nvapi_version",
-                "section": _("Graphics"),
-                "label": _("DXVK NVAPI version"),
-                "advanced": True,
-                "type": "choice_with_entry",
-                "choices": DXVKNVAPIManager().version_choices,
-                "default": DXVKNVAPIManager().version,
-            },
-            {
-                "option": "dgvoodoo2",
-                "section": _("Graphics"),
-                "label": _("Enable dgvoodoo2"),
-                "type": "bool",
-                "default": False,
-                "advanced": False,
-                "help": _(
-                    "dgvoodoo2 is an alternative translation layer for rendering old games "
-                    "that utilize D3D1-7 and Glide APIs. As it translates to D3D11, it's "
-                    "recommended to use it in combination with DXVK. Only 32-bit apps are supported."
-                ),
-            },
-            {
-                "option": "dgvoodoo2_version",
-                "section": _("Graphics"),
-                "label": _("dgvoodoo2 version"),
-                "advanced": True,
-                "type": "choice_with_entry",
-                "choices": dgvoodoo2Manager().version_choices,
-                "default": dgvoodoo2Manager().version,
-            },
-            {
-                "option": "esync",
-                "label": _("Enable Esync"),
-                "type": "bool",
-                "warning": _get_esync_warning,
-                "active": True,
-                "default": True,
-                "help": _(
-                    "Enable eventfd-based synchronization (esync). "
-                    "This will increase performance in applications "
-                    "that take advantage of multi-core processors."
-                ),
-            },
-            {
-                "option": "fsync",
-                "label": _("Enable Fsync"),
-                "type": "bool",
-                "default": is_fsync_supported(),
-                "warning": _get_fsync_warning,
-                "active": True,
-                "help": _(
-                    "Enable futex-based synchronization (fsync). "
-                    "This will increase performance in applications "
-                    "that take advantage of multi-core processors. "
-                    "Requires kernel 5.16 or above."
-                ),
-            },
-            {
-                "option": "fsr",
-                "label": _("Enable AMD FidelityFX Super Resolution (FSR)"),
-                "type": "bool",
-                "default": True,
-                "help": _(
-                    "Use FSR to upscale the game window to native resolution.\n"
-                    "Requires Lutris Wine FShack >= 6.13 and setting the game to a lower resolution.\n"
-                    "Does not work with games running in borderless window mode or that perform their own upscaling."
-                ),
-            },
-            {
-                "option": "battleye",
-                "label": _("Enable BattlEye Anti-Cheat"),
-                "type": "bool",
-                "default": True,
-                "help": _(
-                    "Enable support for BattlEye Anti-Cheat in supported games\n"
-                    "Requires Lutris Wine 6.21-2 and newer or any other compatible Wine build.\n"
-                ),
-            },
-            {
-                "option": "eac",
-                "label": _("Enable Easy Anti-Cheat"),
-                "type": "bool",
-                "default": True,
-                "help": _(
-                    "Enable support for Easy Anti-Cheat in supported games\n"
-                    "Requires Lutris Wine 7.2 and newer or any other compatible Wine build.\n"
-                ),
-            },
-            {
-                "option": "Desktop",
-                "section": _("Virtual Desktop"),
-                "label": _("Windowed (virtual desktop)"),
-                "type": "bool",
-                "advanced": True,
-                "warning": _get_virtual_desktop_warning,
-                "default": False,
-                "help": _(
-                    "Run the whole Windows desktop in a window.\n"
-                    "Otherwise, run it fullscreen.\n"
-                    "This corresponds to Wine's Virtual Desktop option."
-                ),
-            },
-            {
-                "option": "WineDesktop",
-                "section": _("Virtual Desktop"),
-                "label": _("Virtual desktop resolution"),
-                "type": "choice_with_entry",
-                "advanced": True,
-                "choices": DISPLAY_MANAGER.get_resolutions,
-                "help": _("The size of the virtual desktop in pixels."),
-            },
-            {
-                "option": "Dpi",
-                "section": _("DPI"),
-                "label": _("Enable DPI Scaling"),
-                "type": "bool",
-                "advanced": True,
-                "default": False,
-                "help": _(
-                    "Enables the Windows application's DPI scaling.\n"
-                    "Otherwise, the Screen Resolution option in 'Wine configuration' controls this."
-                ),
-            },
-            {
-                "option": "ExplicitDpi",
-                "section": _("DPI"),
-                "label": _("DPI"),
-                "type": "string",
-                "advanced": True,
-                "help": _(
-                    "The DPI to be used if 'Enable DPI Scaling' is turned on.\n"
-                    "If blank or 'auto', Lutris will auto-detect this."
-                ),
-            },
-            {
-                "option": "MouseWarpOverride",
-                "label": _("Mouse Warp Override"),
-                "type": "choice",
-                "choices": [
-                    (_("Enable"), "enable"),
-                    (_("Disable"), "disable"),
-                    (_("Force"), "force"),
-                ],
-                "default": "enable",
-                "advanced": True,
-                "help": _(
-                    "Override the default mouse pointer warping behavior\n"
-                    "<b>Enable</b>: (Wine default) warp the pointer when the "
-                    "mouse is exclusively acquired \n"
-                    "<b>Disable</b>: never warp the mouse pointer \n"
-                    "<b>Force</b>: always warp the pointer"
-                ),
-            },
-            {
-                "option": "Audio",
-                "label": _("Audio driver"),
-                "type": "choice",
-                "advanced": True,
-                "choices": [
-                    (_("Auto"), "auto"),
-                    ("ALSA", "alsa"),
-                    ("PulseAudio", "pulse"),
-                    ("OSS", "oss"),
-                ],
-                "default": "auto",
-                "help": _(
-                    "Which audio backend to use.\n"
-                    "By default, Wine automatically picks the right one "
-                    "for your system."
-                ),
-            },
-            {
-                "option": "overrides",
-                "type": "mapping",
-                "label": _("DLL overrides"),
-                "help": _("Sets WINEDLLOVERRIDES when launching the game."),
-            },
-            {
-                "option": "show_debug",
-                "label": _("Output debugging info"),
-                "type": "choice",
-                "choices": [
-                    (_("Disabled"), "-all"),
-                    (_("Enabled"), ""),
-                    (_("Inherit from environment"), "inherit"),
-                    (_("Show FPS"), "+fps"),
-                    (_("Full (CAUTION: Will cause MASSIVE slowdown)"), "+all"),
-                ],
-                "default": "-all",
-                "help": _("Output debugging information in the game log " "(might affect performance)"),
-            },
-            {
-                "option": "ShowCrashDialog",
-                "label": _("Show crash dialogs"),
-                "type": "bool",
-                "default": False,
-                "advanced": True,
-            },
-            {
-                "option": "autoconf_joypad",
-                "type": "bool",
-                "label": _("Autoconfigure joypads"),
-                "advanced": True,
-                "default": False,
-                "help": _(
-                    "Automatically disables one of Wine's detected joypad " "to avoid having 2 controllers detected"
-                ),
-            },
-            {
-                "option": "sandbox",
-                "type": "bool",
-                "section": _("Sandbox"),
-                "label": _("Create a sandbox for Wine folders"),
-                "default": True,
-                "advanced": True,
-                "help": _(
-                    "Do not use $HOME for desktop integration folders.\n"
-                    "By default, it will use the directories in the confined "
-                    "Windows environment."
-                ),
-            },
-            {
-                "option": "sandbox_dir",
-                "type": "directory_chooser",
-                "section": _("Sandbox"),
-                "label": _("Sandbox directory"),
-                "warn_if_non_writable_parent": True,
-                "help": _("Custom directory for desktop integration folders."),
-                "advanced": True,
-            },
-        ]
 
     @property
     def runner_warning(self):
@@ -680,7 +702,7 @@ class wine(Runner):
                 arch = WINE_DEFAULT_ARCH
         return arch
 
-    def get_runner_version(self, version: str = None) -> Dict[str, str]:
+    def get_runner_version(self, version: str = None) -> Optional[Dict[str, str]]:
         if not version:
             default_version_info = get_default_wine_runner_version_info()
             default_version = format_runner_version(default_version_info) if default_version_info else None
@@ -738,9 +760,15 @@ class wine(Runner):
         if version is None:
             version = self.read_version_from_config()
 
-        wine_path = self.get_path_for_version(version)
-        if system.path_exists(wine_path):
-            return wine_path
+        if proton.is_proton_version(version):
+            return proton.get_proton_wine_path(version)
+        try:
+            wine_path = self.get_path_for_version(version)
+            if system.path_exists(wine_path):
+                return wine_path
+        except MissingExecutableError:
+            if not fallback:
+                raise
 
         if not fallback:
             raise MissingExecutableError(_("The Wine executable at '%s' is missing.") % wine_path)
@@ -760,6 +788,17 @@ class wine(Runner):
             # config or the runner specific config. We need to know
             # which one to get the correct LutrisConfig object.
         return wine_path
+
+    def get_command(self) -> List[str]:
+        command = super().get_command()
+        if command:
+            if proton.is_proton_path(command[0]) and not proton.is_umu_path(command[0]):
+                command[0] = proton.get_umu_path()
+
+            if proton.is_umu_path(command[0]) and self.wine_arch == "win32":
+                raise RuntimeError(_("Proton is not compatible with 32-bit prefixes."))
+
+        return command
 
     def is_installed(self, flatpak_allowed: bool = True, version: str = None, fallback: bool = True) -> bool:
         """Check if Wine is installed.
@@ -782,11 +821,14 @@ class wine(Runner):
         except MisconfigurationError:
             return False
 
-    def get_installer_runner_version(self, installer, use_runner_config: bool = True, use_api: bool = False) -> str:
+    def get_installer_runner_version(
+        self, installer, use_runner_config: bool = True, use_api: bool = False
+    ) -> Optional[str]:
         # If a version is specified in the script choose this one
         version = None
         if installer.script.get(installer.runner):
             version = installer.script[installer.runner].get("version")
+            version = normalize_version_architecture(version)
         # If the installer is an extension, use the wine version from the base game
         elif installer.requires:
             db_game = get_game_by_field(installer.requires, field="installer_slug")
@@ -802,19 +844,21 @@ class wine(Runner):
             try:
                 return wine.get_runner_version_and_config()[0]
             except UnspecifiedVersionError:
-                pass  # prefer the error message below for this
+                pass  # fall back to the API in this case
 
         if not version and use_api:
             # Try to obtain the default wine version from the Lutris API.
             default_version_info = self.get_runner_version()
-            if "version" in default_version_info:
+            if default_version_info and "version" in default_version_info:
                 logger.debug("Default wine version is %s", default_version_info["version"])
                 version = format_runner_version(default_version_info)
 
-        if not version:
-            raise UnspecifiedVersionError(_("The installer does not specify a Wine version."))
-
         return version
+
+    def adjust_installer_runner_config(self, installer_runner_config: Dict[str, Any]) -> None:
+        version = installer_runner_config.get("version")
+        if version:
+            installer_runner_config["version"] = normalize_version_architecture(version)
 
     @classmethod
     def get_runner_version_and_config(cls) -> Tuple[str, LutrisConfig]:
@@ -934,12 +978,13 @@ class wine(Runner):
 
     def run_winekill(self, *args):
         """Runs wineserver -k."""
+
         winekill(
             self.prefix_path,
             arch=self.wine_arch,
             wine_path=self.get_executable(),
             env=self.get_env(),
-            initial_pids=self.get_pids(),
+            initial_pids=self.get_wine_executable_pids(),
         )
         return True
 
@@ -965,7 +1010,10 @@ class wine(Runner):
                     if (
                         value
                         and key in ("Desktop", "WineDesktop")
-                        and ("wine-ge" in self.get_executable().lower() or "proton" in self.get_executable().lower())
+                        and (
+                            "wine-ge" in self.get_executable().casefold()
+                            or proton.is_proton_path(self.get_executable())
+                        )
                     ):
                         logger.warning("Wine Virtual Desktop can't be used with Wine-GE and Proton")
                         value = None
@@ -1011,7 +1059,7 @@ class wine(Runner):
             if self.runner_config.get("autoconf_joypad", False):
                 prefix_manager.configure_joypads()
             prefix_manager.create_user_symlinks()
-            self.sandbox(prefix_manager)
+            self.configure_desktop_integration(prefix_manager)
             self.set_regedit_keys()
 
             for manager, enabled in self.get_dll_managers().items():
@@ -1030,6 +1078,8 @@ class wine(Runner):
         ]
 
         managers = {}
+        is_proton = proton.is_proton_path(self.get_executable())
+
         for manager_class, enabled_option, version_option in manager_classes:
             enabled = bool(self.runner_config.get(enabled_option))
             version = self.runner_config.get(version_option)
@@ -1038,10 +1088,12 @@ class wine(Runner):
 
                 if not manager.can_enable():
                     enabled = False
-                    if enabled_only:
-                        continue
 
-                managers[manager] = enabled
+                if not manager.proton_compatible and is_proton:
+                    enabled = False
+
+                if enabled or not enabled_only:
+                    managers[manager] = enabled
 
         return managers
 
@@ -1065,31 +1117,47 @@ class wine(Runner):
         show_debug = self.runner_config.get("show_debug", "-all")
         if show_debug != "inherit":
             env["WINEDEBUG"] = show_debug
-        if show_debug == "-all":
-            env["DXVK_LOG_LEVEL"] = "none"
+            env["DXVK_LOG_LEVEL"] = "error"
+            env["UMU_LOG"] = "1"
+            if show_debug == "":
+                env["DXVK_LOG_LEVEL"] = "info"
+                env["UMU_LOG"] = "warning"
+            elif show_debug == "+all":
+                env["DXVK_LOG_LEVEL"] = "debug"
+                env["UMU_LOG"] = "debug"
         env["WINEARCH"] = self.wine_arch
         wine_exe = self.get_executable()
         wine_config_version = self.read_version_from_config()
         env["WINE"] = wine_exe
-        env["WINE_MONO_CACHE_DIR"] = os.path.join(WINE_DIR, wine_config_version, "mono")
-        env["WINE_GECKO_CACHE_DIR"] = os.path.join(WINE_DIR, wine_config_version, "gecko")
+
+        files_dir = get_runner_files_dir_for_version(wine_config_version)
+        if files_dir:
+            env["WINE_MONO_CACHE_DIR"] = os.path.join(files_dir, "mono")
+            env["WINE_GECKO_CACHE_DIR"] = os.path.join(files_dir, "gecko")
 
         # We don't want to override gstreamer for proton, it has it's own version
-        if ("Proton" not in WINE_DIR) or ("lutris" in WINE_DIR and "Proton" in WINE_DIR):
-            if is_gstreamer_build(wine_exe):
-                path_64 = os.path.join(WINE_DIR, wine_config_version, "lib64/gstreamer-1.0/")
-                path_32 = os.path.join(WINE_DIR, wine_config_version, "lib/gstreamer-1.0/")
-                if os.path.exists(path_64) or os.path.exists(path_32):
-                    env["GST_PLUGIN_SYSTEM_PATH_1_0"] = path_64 + ":" + path_32
+        if files_dir and not proton.is_proton_path(wine_exe) and is_gstreamer_build(wine_exe):
+            path_64 = os.path.join(files_dir, "lib64/gstreamer-1.0/")
+            path_32 = os.path.join(files_dir, "lib/gstreamer-1.0/")
+            if os.path.exists(path_64) or os.path.exists(path_32):
+                env["GST_PLUGIN_SYSTEM_PATH_1_0"] = path_64 + ":" + path_32
 
         if self.prefix_path:
             env["WINEPREFIX"] = self.prefix_path
 
-        if not ("WINEESYNC" in env and env["WINEESYNC"] == "1"):
+        if "WINEESYNC" not in env:
             env["WINEESYNC"] = "1" if self.runner_config.get("esync") else "0"
 
-        if not ("WINEFSYNC" in env and env["WINEFSYNC"] == "1"):
+        # Proton uses an env-var with the opposite sense!
+        if "PROTON_NO_ESYNC" not in env and not self.runner_config.get("esync"):
+            env["PROTON_NO_ESYNC"] = "1"
+
+        if "WINEFSYNC" not in env:
             env["WINEFSYNC"] = "1" if self.runner_config.get("fsync") else "0"
+
+        # Proton uses an env-var with the opposite sense!
+        if "PROTON_NO_FSYNC" not in env and not self.runner_config.get("fsync"):
+            env["PROTON_NO_FSYNC"] = "1"
 
         if self.runner_config.get("fsr"):
             env["WINE_FULLSCREEN_FSR"] = "1"
@@ -1104,6 +1172,12 @@ class wine(Runner):
         if self.runner_config.get("eac"):
             env["PROTON_EAC_RUNTIME"] = os.path.join(settings.RUNTIME_DIR, "eac_runtime")
 
+        if not self.runner_config.get("dxvk") or not LINUX_SYSTEM.is_vulkan_supported():
+            env["PROTON_USE_WINED3D"] = "1"
+
+        if self.runner_config.get("dxvk"):
+            env["PROTON_DXVK_D3D8"] = "1"
+
         for dll_manager in self.get_dll_managers(enabled_only=True):
             self.dll_overrides.update(dll_manager.get_enabling_dll_overrides())
 
@@ -1113,27 +1187,21 @@ class wine(Runner):
 
         env["WINEDLLOVERRIDES"] = get_overrides_env(self.dll_overrides)
 
-        # Proton support
-        if wine_config_version and "Proton" in wine_config_version and "lutris" not in wine_config_version:
-            if "GAMEID" not in env:
-                env["GAMEID"] = "ULWGL-foo"
-            # In stable versions of proton this can be dist/bin insteasd of files/bin
-            if "files/bin" in wine_exe:
-                env["PROTONPATH"] = wine_exe[: wine_exe.index("files/bin")]
-            else:
-                env["PROTONPATH"] = wine_exe[: wine_exe.index("dist/bin")]
         return env
+
+    def finish_env(self, env: Dict[str, str], game) -> None:
+        super().finish_env(env, game)
+
+        wine_exe = self.get_executable()
+
+        if proton.is_proton_path(wine_exe):
+            game_id = proton.get_game_id(game, env)
+            proton.update_proton_env(wine_exe, env, game_id=game_id)
 
     def get_runtime_env(self):
         """Return runtime environment variables with path to wine for Lutris builds"""
-        wine_path = None
         try:
-            exe = self.get_executable()
-            if WINE_DIR:
-                wine_path = os.path.dirname(os.path.dirname(exe))
-            for proton_path in get_proton_paths():
-                if proton_path in exe:
-                    wine_path = os.path.dirname(os.path.dirname(exe))
+            wine_path = os.path.dirname(os.path.dirname(self.get_executable()))
         except MisconfigurationError:
             wine_path = None
 
@@ -1143,18 +1211,20 @@ class wine(Runner):
             wine_path=wine_path,
         )
 
-    def get_pids(self, wine_path=None):
+    def get_wine_executable_pids(self):
         """Return a list of pids of processes using the current wine exe."""
         try:
-            exe = wine_path or self.get_executable()
+            exe = self.get_executable()
+            if proton.is_proton_path(exe):
+                logger.debug("Tracking PIDs of Proton games is not possible at the moment")
+                return set()
+            if not exe.startswith("/"):
+                exe = system.find_required_executable(exe)
+            pids = system.get_pids_using_file(exe)
+            if self.wine_arch == "win64" and os.path.basename(exe) == "wine":
+                pids = pids | system.get_pids_using_file(exe + "64")
         except MisconfigurationError:
             return set()
-
-        if not exe.startswith("/"):
-            exe = system.find_executable(exe)
-        pids = system.get_pids_using_file(exe)
-        if self.wine_arch == "win64" and os.path.basename(exe) == "wine":
-            pids = pids | system.get_pids_using_file(exe + "64")
 
         # Add wineserver PIDs to the mix (at least one occurence of fuser not
         # picking the games's PID from wine/wine64 but from wineserver for some
@@ -1162,30 +1232,23 @@ class wine(Runner):
         pids = pids | system.get_pids_using_file(os.path.join(os.path.dirname(exe), "wineserver"))
         return pids
 
-    def sandbox(self, wine_prefix):
+    def configure_desktop_integration(self, wine_prefix):
         try:
-            if self.runner_config.get("sandbox", True):
-                wine_prefix.enable_desktop_integration_sandbox(desktop_dir=self.runner_config.get("sandbox_dir"))
+            if self.game_config.get("desktop_integration", False):
+                wine_prefix.install_desktop_integration()
             else:
-                wine_prefix.restore_desktop_integration()
+                wine_prefix.remove_desktop_integration()
         except Exception as ex:
             logger.exception("Failed to setup desktop integration, the prefix may not be valid: %s", ex)
-
-    def get_command(self):
-        exe = self.get_executable()
-        ulwgl_path = os.path.join(os.path.join(settings.RUNTIME_DIR, "ulwgl"))
-        if "Proton" in exe and "lutris" not in exe and system.path_exists(ulwgl_path):
-            return [os.path.join(ulwgl_path, "ulwgl-run")]
-        return super().get_command()
 
     def play(self):  # pylint: disable=too-many-return-statements # noqa: C901
         game_exe = self.game_exe
         arguments = self.game_config.get("args", "")
         launch_info = {"env": self.get_env(os_env=False)}
-        using_dxvk = self.runner_config.get("dxvk")
+        using_dxvk = self.runner_config.get("dxvk") and LINUX_SYSTEM.is_vulkan_supported
 
         if using_dxvk:
-            # Set this to 1 to enable access to more RAM for 32bit applications
+            # Set this to 1 to enable access to more RAM for 32-bit applications
             launch_info["env"]["WINE_LARGE_ADDRESS_AWARE"] = "1"
 
         if not game_exe or not system.path_exists(game_exe):
@@ -1216,37 +1279,70 @@ class wine(Runner):
         launch_info["command"] = command
         return launch_info
 
-    def force_stop_game(self, game):
+    def filter_game_pids(self, candidate_pids: Iterable[int], game_uuid: str, game_folder: str) -> Set[int]:
+        """Checks the pids given and returns a set containing only those that are part of the running game,
+        identified by its UUID and directory."""
+
+        if proton.is_proton_path(self.get_executable()):
+            folder_pids = set()
+            for pid in candidate_pids:
+                cmdline = Process(pid).cmdline or ""
+                # pressure-vessel: This could potentially pick up PIDs not started by lutris?
+                if game_folder in cmdline or "pressure-vessel" in cmdline:
+                    folder_pids.add(pid)
+
+            uuid_pids = set(pid for pid in candidate_pids if Process(pid).environ.get("LUTRIS_GAME_UUID") == game_uuid)
+
+            return folder_pids & uuid_pids
+        else:
+            return super().filter_game_pids(candidate_pids, game_uuid, game_folder)
+
+    def force_stop_game(self, game_pids: Iterable[int]) -> None:
         """Kill WINE with kindness, or at least with -k. This seems to leave a process
         alive for some reason, but the caller will detect this and SIGKILL it."""
-        self.run_winekill()
+
+        winekill(
+            self.prefix_path,
+            arch=self.wine_arch,
+            wine_path=self.get_executable(),
+            env=self.get_env(),
+            initial_pids=game_pids,
+        )
 
     def extract_icon(self, game_slug):
         """Extracts the 128*128 icon from EXE and saves it, if not resizes the biggest icon found.
         returns true if an icon is saved, false if not"""
 
-        wantedsize = (128, 128)
-        pathtoicon = settings.ICON_PATH + "/lutris_" + game_slug + ".png"
-        if not self.game_exe or os.path.exists(pathtoicon) or not PEFILE_AVAILABLE:
-            return False
+        try:
+            wantedsize = (128, 128)
+            pathtoicon = settings.ICON_PATH + "/lutris_" + game_slug + ".png"
+            exe = self.game_exe
+            if not exe or os.path.exists(pathtoicon) or not PEFILE_AVAILABLE:
+                return False
 
-        extractor = ExtractIcon(self.game_exe)
-        groups = extractor.get_group_icons()
+            extractor = ExtractIcon(self.game_exe)
+            groups = extractor.get_group_icons()
 
-        icons = []
-        biggestsize = (0, 0)
-        biggesticon = -1
-        for i in range(len(groups[0])):
-            icons.append(extractor.export(groups[0], i))
-            if icons[i].size > biggestsize:
-                biggesticon = i
-                biggestsize = icons[i].size
-            elif icons[i].size == wantedsize:
-                icons[i].save(pathtoicon)
+            if not groups:
+                return False
+
+            icons = []
+            biggestsize = (0, 0)
+            biggesticon = -1
+            for i in range(len(groups[0])):
+                icons.append(extractor.export(groups[0], i))
+                if icons[i].size > biggestsize:
+                    biggesticon = i
+                    biggestsize = icons[i].size
+                elif icons[i].size == wantedsize:
+                    icons[i].save(pathtoicon)
+                    return True
+
+            if biggesticon >= 0:
+                resized = icons[biggesticon].resize(wantedsize)
+                resized.save(pathtoicon)
                 return True
-
-        if biggesticon >= 0:
-            resized = icons[biggesticon].resize(wantedsize)
-            resized.save(pathtoicon)
-            return True
-        return False
+            return False
+        except Exception as ex:
+            logger.exception("Unable to extract icon from %s: %s", exe, ex)
+            return False

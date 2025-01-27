@@ -4,8 +4,8 @@ from gettext import gettext as _
 from pathlib import Path
 from typing import Callable
 
-from lutris.command import MonitoredCommand
 from lutris.exceptions import GameConfigError, MissingExecutableError
+from lutris.monitored_command import MonitoredCommand
 from lutris.runners import NonInstallableRunnerError
 from lutris.runners.runner import Runner
 from lutris.util import flatpak as _flatpak
@@ -65,7 +65,7 @@ class flatpak(Runner):
         },
         {
             "option": "working_dir",
-            "type": "directory_chooser",
+            "type": "directory",
             "label": _("Working directory"),
             "warn_if_non_writable_parent": True,
             "help": _("The directory to run the command in. Note that this must be a directory inside the sandbox."),

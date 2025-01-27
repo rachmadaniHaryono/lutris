@@ -1,4 +1,5 @@
 """Widgets for the installer window"""
+
 import os
 from gettext import gettext as _
 
@@ -46,6 +47,7 @@ class InstallerFileBox(Gtk.VBox):
         download_progress = self.installer_file.create_download_progress_box()
         download_progress.connect("complete", self.on_download_complete)
         download_progress.connect("cancel", self.on_download_cancelled)
+        download_progress.connect("error", self.on_download_error)
         download_progress.show()
         self.installer_file.remove_previous()
         return download_progress
@@ -72,8 +74,8 @@ class InstallerFileBox(Gtk.VBox):
             if isinstance(self.installer_file, InstallerFileCollection):
                 raise RuntimeError("Installer file is type InstallerFileCollection and do not support 'steam' provider")
             steam_installer = SteamInstaller(self.installer_file.url, self.installer_file.id)
-            steam_installer.connect("steam-game-installed", self.on_download_complete)
-            steam_installer.connect("steam-state-changed", self.on_state_changed)
+            steam_installer.game_installed.register(self.on_steam_game_installed)
+            steam_installer.game_state_changed.register(self.on_steam_game_state_changed)
             self.start_func = steam_installer.install_steam_game
             self.stop_func = steam_installer.stop_func
 
@@ -195,6 +197,10 @@ class InstallerFileBox(Gtk.VBox):
         """Update the state label with a new state"""
         self.state_label.set_text(state)
 
+    def on_steam_game_state_changed(self, installer):
+        """Update the state label with a new state"""
+        self.state_label.set_text(installer.state)
+
     def start(self):
         """Starts the download of the file"""
         self.started = True
@@ -217,11 +223,20 @@ class InstallerFileBox(Gtk.VBox):
         logger.error("Download from %s cancelled", downloader)
         downloader.set_retry_button()
 
+    def on_download_error(self, downloader, error):
+        logger.error("Download from %s failed: %s", downloader, error)
+        downloader.set_retry_button()
+
     def on_download_complete(self, widget, _data=None):
         """Action called on a completed download."""
         logger.info("Download completed")
+        self.installer_file.check_hash()
         if isinstance(widget, SteamInstaller):
             self.installer_file.dest_file = widget.get_steam_data_path()
         else:
             self.cache_file()
+        self.emit("file-available")
+
+    def on_steam_game_installed(self, installer):
+        self.installer_file.dest_file = installer.get_steam_data_path()
         self.emit("file-available")

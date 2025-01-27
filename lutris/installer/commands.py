@@ -1,4 +1,5 @@
 """Commands for installer scripts"""
+
 import glob
 import json
 import multiprocessing
@@ -8,18 +9,17 @@ import shutil
 from gettext import gettext as _
 from pathlib import Path
 
-from gi.repository import GLib
-
 from lutris import runtime
 from lutris.cache import get_cache_path, has_custom_cache_path
-from lutris.command import MonitoredCommand
 from lutris.exceptions import MissingExecutableError, UnspecifiedVersionError
 from lutris.installer.errors import ScriptingError
 from lutris.installer.installer import LutrisInstaller
+from lutris.monitored_command import MonitoredCommand
 from lutris.runners import InvalidRunnerError, import_runner, import_task
 from lutris.runners.wine import wine
 from lutris.util import extract, linux, selective_merge, system
 from lutris.util.fileio import EvilConfigParser, MultiOrderedDict
+from lutris.util.jobs import schedule_repeating_at_idle
 from lutris.util.log import logger
 from lutris.util.wine.wine import WINE_DEFAULT_ARCH, get_default_wine_version, get_wine_path_for_version
 
@@ -34,20 +34,24 @@ class CommandsMixin:
         """Return absolute path of wine version used during the installation, but
         None if the wine exe can't be located."""
         runner = self.get_runner_class(self.installer.runner)()
-        try:
-            version = runner.get_installer_runner_version(self.installer, use_runner_config=False)
-        except (UnspecifiedVersionError, RuntimeError):
-            # Special case that lets the Wine configuration explicit specify the path
-            # to the Wine executable, not just a version number.
-            if self.installer.runner == "wine":
-                try:
-                    config_version, runner_config = wine.get_runner_version_and_config()
-                    return get_wine_path_for_version(config_version, config=runner_config.runner_level)
-                except UnspecifiedVersionError:
-                    pass
+        version = runner.get_installer_runner_version(self.installer, use_runner_config=False)
+        if version:
+            wine_path = get_wine_path_for_version(version)
+            return wine_path
 
-            version = get_default_wine_version()
-        return get_wine_path_for_version(version)
+        # Special case that lets the Wine configuration explicit specify the path
+        # to the Wine executable, not just a version number.
+        if self.installer.runner == "wine":
+            try:
+                config_version, runner_config = wine.get_runner_version_and_config()
+                wine_path = get_wine_path_for_version(config_version, config=runner_config.runner_level["wine"])
+                return wine_path
+            except UnspecifiedVersionError:
+                pass
+
+        version = get_default_wine_version()
+        wine_path = get_wine_path_for_version(version)
+        return wine_path
 
     def get_runner_class(self, runner_name):
         """Runner the runner class from its name"""
@@ -157,7 +161,7 @@ class CommandsMixin:
             system.make_executable(exec_path)
 
         try:
-            exec_abs_path = system.find_executable(exec_path)
+            exec_abs_path = system.find_required_executable(exec_path)
         except MissingExecutableError as ex:
             raise ScriptingError(_("Unable to find executable %s") % exec_path) from ex
 
@@ -178,7 +182,7 @@ class CommandsMixin:
         command.accepted_return_code = return_code
         command.start()
         self.interpreter_ui_delegate.attach_log(command)
-        self.heartbeat = GLib.timeout_add(1000, self._monitor_task, command)
+        schedule_repeating_at_idle(self._monitor_task, command, interval_seconds=1.0)
         return "STOP"
 
     def extract(self, data):
@@ -428,12 +432,11 @@ class CommandsMixin:
 
         task = import_task(runner_name, task_name)
         command = task(**data)
-        if command:
-            command.accepted_return_code = return_code
         if isinstance(command, MonitoredCommand):
             # Monitor thread and continue when task has executed
             self.interpreter_ui_delegate.attach_log(command)
-            self.heartbeat = GLib.timeout_add(1000, self._monitor_task, command)
+            command.accepted_return_code = return_code
+            schedule_repeating_at_idle(self._monitor_task, command, interval_seconds=1.0)
             return "STOP"
         return None
 

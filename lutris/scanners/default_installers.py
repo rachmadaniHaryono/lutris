@@ -50,6 +50,7 @@ DEFAULT_INSTALLERS = {
     },
     "amiga": {"runner": "fsuae", "game": {"main_file": "rom"}},
     "amiga-1200": {"runner": "fsuae", "game": {"main_file": "rom"}, "fsuae": {"model": "A1200"}},
+    "amiga-cd32": {"runner": "fsuae", "game": {"main_file": "rom"}, "fsuae": {"model": "CD32"}},
     "ds": {
         "runner": "libretro",
         "game": {"core": "desmume", "main_file": "rom"},
@@ -102,4 +103,6 @@ DEFAULT_INSTALLERS = {
     "gx4000": {"runner": "mame", "game": {"main_file": "rom", "device": "cart", "machine": "gx4000"}},
     "apple2": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "apple2gs"}},
     "spectrumcass": {"runner": "mame", "game": {"main_file": "rom", "device": "cass", "machine": "spectrum"}},
+    "c64prg": {"runner": "libretro", "game": {"core": "vice_x64", "main_file": "rom"}},
+    "c64g64": {"runner": "libretro", "game": {"core": "vice_x64", "main_file": "rom"}},
 }

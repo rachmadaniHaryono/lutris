@@ -1,4 +1,5 @@
 """Install a game by following its install script."""
+
 import os
 from gettext import gettext as _
 
@@ -7,13 +8,12 @@ from gi.repository import GObject
 from lutris import settings
 from lutris.config import LutrisConfig
 from lutris.database.games import get_game_by_field
-from lutris.exceptions import MisconfigurationError
+from lutris.exceptions import AuthenticationError, MisconfigurationError, UnavailableGameError
 from lutris.gui.dialogs.delegates import Delegate
 from lutris.installer import AUTO_EXE_PREFIX
 from lutris.installer.commands import CommandsMixin
 from lutris.installer.errors import MissingGameDependencyError, ScriptingError
 from lutris.installer.installer import LutrisInstaller
-from lutris.installer.legacy import get_game_launcher
 from lutris.runners import NonInstallableRunnerError, RunnerInstallationError, steam, wine
 from lutris.services.lutris import download_lutris_media
 from lutris.util import system
@@ -40,7 +40,7 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
 
         def report_error(self, error):
             """Called to report an error during installation. The installation will then stop."""
-            logger.exception("Error during installation: %s", error)
+            pass
 
         def report_status(self, status):
             """Called to report the current activity of the installer."""
@@ -201,7 +201,11 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
         """Get extras and store them to move them at the end of the install"""
         if not self.service or not self.service.has_extras or not self.installer.service_appid:
             return []
-        return self.service.get_extras(self.installer.service_appid)
+        try:
+            return self.service.get_extras(self.installer.service_appid)
+        except (AuthenticationError, UnavailableGameError) as ex:
+            logger.exception("Unable to download list of extras: %s", ex)
+            return []
 
     def launch_install(self, ui_delegate):
         """Launch the install process; returns False if cancelled by the user."""
@@ -252,7 +256,7 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
 
         for runner in required_runners:
             if not runner.is_installed_for(self):
-                logger.info("Runner %s needs to be installed", runner)
+                logger.info("Runner %s needs to be installed", runner.name)
                 runners_to_install.append(runner)
 
         return runners_to_install
@@ -275,7 +279,7 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
         try:
             runner.install(
                 ui_delegate,
-                version=runner.get_installer_runner_version(self.installer) if runner.has_runner_versions else None,
+                version=runner.get_installer_runner_version(self.installer),
                 callback=install_more_runners,
             )
         except (NonInstallableRunnerError, RunnerInstallationError) as ex:
@@ -334,6 +338,7 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
                 self._finish_install()
         except Exception as ex:
             # Redirect errors to the delegate, instead of the default ErrorDialog.
+            logger.exception("Error during installation: %s", ex)
             self.interpreter_ui_delegate.report_error(ex)
 
     @staticmethod
@@ -359,21 +364,9 @@ class ScriptInterpreter(GObject.Object, CommandsMixin):
 
     def _finish_install(self):
         game_id = self.installer.save()
-
-        launcher_value = None
         path = None
-        _launcher, launcher_value = get_game_launcher(self.installer.script)
-        if launcher_value:
-            path = self._substitute(launcher_value)
-            if not os.path.isabs(path) and self.target_path:
-                path = system.fix_path_case(os.path.join(self.target_path, path))
 
-        if (
-            path
-            and AUTO_EXE_PREFIX not in path
-            and not os.path.isfile(path)
-            and self.installer.runner not in ("web", "browser")
-        ):
+        if path and AUTO_EXE_PREFIX not in path and not os.path.isfile(path) and self.installer.runner != "web":
             status = (
                 _(
                     "The executable at path %s can't be found, please check the destination folder.\n"

@@ -1,7 +1,9 @@
 """Epic Games Store service"""
+
 import json
 import os
 from gettext import gettext as _
+from typing import Any, Dict, Optional
 
 import requests
 from gi.repository import Gio
@@ -12,7 +14,7 @@ from lutris.database.games import add_game, get_game_by_field
 from lutris.database.services import ServiceGameCollection
 from lutris.game import Game
 from lutris.gui.widgets.utils import Image, paste_overlay, thumbnail_image
-from lutris.services.base import AuthTokenExpiredError, OnlineService
+from lutris.services.base import SERVICE_LOGIN, AuthTokenExpiredError, OnlineService
 from lutris.services.lutris import sync_media
 from lutris.services.service_game import ServiceGame
 from lutris.services.service_media import ServiceMedia
@@ -63,10 +65,11 @@ class DieselGameMedia(ServiceMedia):
         thumb_image = thumb_image.convert("RGB")
         thumb_image.save(thumb_path)
 
-    def get_media_url(self, details):
+    def get_media_url(self, details: Dict[str, Any]) -> Optional[str]:
         for image in details.get("keyImages", []):
             if image["type"] == self.api_field:
                 return image["url"] + "?w=%s&resize=1&h=%s" % (self.remote_size[0], self.remote_size[1])
+        return None
 
 
 class DieselGameBoxTall(DieselGameMedia):
@@ -179,11 +182,13 @@ class EpicGamesStoreService(OnlineService):
         super().__init__()
         self.session = requests.session()
         self.session.headers["User-Agent"] = self.user_agent
+        self.session_data = {}
         if os.path.exists(self.token_path):
-            with open(self.token_path, encoding="utf-8") as token_file:
-                self.session_data = json.loads(token_file.read())
-        else:
-            self.session_data = {}
+            try:
+                with open(self.token_path, encoding="utf-8") as token_file:
+                    self.session_data = json.loads(token_file.read())
+            except Exception as ex:
+                logger.exception("Unable to load token file '%s': %s", token_file, ex)
 
     @property
     def http_basic_auth(self):
@@ -202,7 +207,7 @@ class EpicGamesStoreService(OnlineService):
         session_id = content_json["authorizationCode"]
 
         self.start_session(authorization_code=session_id)
-        self.emit("service-login")
+        SERVICE_LOGIN.fire(self)
 
     def resume_session(self):
         self.session.headers["Authorization"] = "bearer %s" % self.session_data["access_token"]
@@ -295,7 +300,17 @@ class EpicGamesStoreService(OnlineService):
             raise AuthTokenExpiredError("EGS Token expired") from ex
         egs_games = []
         for game in library:
-            egs_game = EGSGame.new_from_api(game)
+            try:
+                # Subscriptions turn up as 'games' that have no 'appName'; these
+                # are not really games, so we skip them.
+                if "appName" in game:
+                    egs_game = EGSGame.new_from_api(game)
+                else:
+                    continue
+            except Exception as ex:
+                logger.exception("Unable to interpret EGS game: %s", ex)
+                logger.info("EGS game skipped: %s", game)
+                continue
             egs_game.save()
             egs_games.append(egs_game)
         return egs_games

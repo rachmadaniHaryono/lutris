@@ -1,12 +1,14 @@
-"""AppIndicator based tray icon"""
+"""AppIndicator/AyatanaAppIndicator based tray icon"""
+
 from gettext import gettext as _
 
 import gi
-from gi.repository import Gdk, Gtk
+from gi.repository import Gtk
 
+from lutris.database import categories
 from lutris.database.games import get_games
 from lutris.game import Game
-from lutris.util import cache_single
+from lutris.util.display import is_display_x11
 
 try:
     gi.require_version("AppIndicator3", "0.1")
@@ -14,16 +16,17 @@ try:
 
     APP_INDICATOR_SUPPORTED = True
 except (ImportError, ValueError):
-    APP_INDICATOR_SUPPORTED = False
+    try:
+        gi.require_version("AyatanaAppIndicator3", "0.1")
+        from gi.repository import AyatanaAppIndicator3 as AppIndicator
+
+        APP_INDICATOR_SUPPORTED = True
+    except (ImportError, ValueError):
+        APP_INDICATOR_SUPPORTED = False
 
 
-@cache_single
-def supports_status_icon():
-    if APP_INDICATOR_SUPPORTED:
-        return True
-
-    display = Gdk.Display.get_default()
-    return "x11" in type(display).__name__.casefold()
+def supports_status_icon() -> bool:
+    return bool(APP_INDICATOR_SUPPORTED or is_display_x11())
 
 
 class LutrisStatusIcon:
@@ -142,6 +145,8 @@ class LutrisStatusIcon:
     def _get_installed_games():
         """Adds installed games in order of last use"""
         installed_games = get_games(filters={"installed": 1})
+        hidden_game_ids = categories.get_game_ids_for_categories([".hidden"])
+        installed_games = [g for g in installed_games if g.get("id") not in hidden_game_ids]
         installed_games.sort(
             key=lambda game: max(game["lastplayed"] or 0, game["installed_at"] or 0),
             reverse=True,

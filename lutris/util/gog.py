@@ -38,11 +38,14 @@ def get_game_config(task, gog_game_path):
         if os.path.exists(resolved):
             return resolved
 
-        resolved = system.fix_path_case(os.path.join(gog_game_path, path.replace("\\", "/")))
+        fixed = path.replace("\\", "/")
+        if fixed.startswith("/"):
+            fixed = fixed[1:]
+        resolved = system.fix_path_case(os.path.join(gog_game_path, fixed))
         if os.path.exists(resolved):
             return resolved
 
-        logger.warning("GOG configuratipath '%s' could not be resolved", path)
+        logger.warning("GOG configuration path '%s' could not be resolved", path)
         return path
 
     config = {}

@@ -1,9 +1,12 @@
+import os
 import time
 from gettext import gettext as _
 
-from gi.repository import GLib, GObject, Gtk, Pango
+from gi.repository import GObject, Gtk, Pango
 
+from lutris.gui.dialogs import display_error
 from lutris.util.downloader import Downloader
+from lutris.util.jobs import schedule_repeating_at_idle
 from lutris.util.log import logger
 from lutris.util.strings import gtk_safe, human_size
 
@@ -98,7 +101,7 @@ class DownloadCollectionProgressBox(Gtk.Box):
 
         return self._file_download
 
-    def start(self):
+    def start(self) -> None:
         """Start downloading a file."""
         file = self.get_next_file_from_queue()
         if not file:
@@ -107,18 +110,31 @@ class DownloadCollectionProgressBox(Gtk.Box):
             self.emit("complete", {})
             return
 
+        # Check if the file already exists in the cache and skip this download then
+        if os.path.exists(file.dest_file):
+            logger.info("File exists, skipping download: '%s'", file.dest_file)
+            self.num_files_downloaded += 1
+            self.current_size += os.path.getsize(file.dest_file)
+            self._file_download = None
+            self.start()
+            return
+
+        # Use a temporary file to avoid problems with partially downloaded files
+        tmp_path = file.dest_file + ".tmp"
+        file.tmp_file = tmp_path
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
         self.update_download_file_label(file.filename)
         if not self.downloader:
             try:
-                self.downloader = Downloader(file.url, file.dest_file, referer=file.referer, overwrite=True)
+                self.downloader = Downloader(file.url, file.tmp_file, referer=file.referer, overwrite=True)
             except RuntimeError as ex:
-                from lutris.gui.dialogs import ErrorDialog
-
-                ErrorDialog(ex, parent=self.get_toplevel())
+                display_error(ex, parent=self.get_toplevel())
                 self.emit("cancel")
                 return
 
-        GLib.timeout_add(500, self._progress)
+        schedule_repeating_at_idle(self._progress, interval_seconds=0.5)
         self.cancel_button.show()
         self.cancel_button.set_sensitive(True)
         if not self.downloader.state == self.downloader.DOWNLOADING:
@@ -148,7 +164,7 @@ class DownloadCollectionProgressBox(Gtk.Box):
         self.cancel_button.set_sensitive(False)
         self.emit("cancel")
 
-    def _progress(self):
+    def _progress(self) -> bool:
         """Show download progress of current file."""
         if self.downloader.state in [self.downloader.CANCELLED, self.downloader.ERROR]:
             self.progressbar.set_fraction(0)
@@ -158,7 +174,7 @@ class DownloadCollectionProgressBox(Gtk.Box):
             else:
                 if self.num_retries > self.max_retries:
                     self._set_text(str(self.downloader.error)[:80])
-                    self.emit("error")
+                    self.emit("error", self.downloader.error)
                     return False
                 self.num_retries += 1
                 if self.downloader:
@@ -182,6 +198,7 @@ class DownloadCollectionProgressBox(Gtk.Box):
         if self.downloader.state == self.downloader.COMPLETED:
             self.num_files_downloaded += 1
             self.current_size += self.downloader.downloaded_size
+            os.rename(self._file_download.tmp_file, self._file_download.dest_file)
             # set file to None to get next one
             self._file_download = None
             self.downloader = None

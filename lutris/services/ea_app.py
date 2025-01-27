@@ -1,9 +1,11 @@
 """EA App service."""
+
 import json
 import os
 import random
 import ssl
 from gettext import gettext as _
+from typing import Any, Dict, Optional
 from xml.etree import ElementTree
 
 import requests
@@ -15,7 +17,7 @@ from lutris.config import LutrisConfig, write_game_config
 from lutris.database.games import add_game, get_game_by_field
 from lutris.database.services import ServiceGameCollection
 from lutris.game import Game
-from lutris.services.base import OnlineService
+from lutris.services.base import SERVICE_LOGIN, OnlineService
 from lutris.services.lutris import sync_media
 from lutris.services.service_game import ServiceGame
 from lutris.services.service_media import ServiceMedia
@@ -61,8 +63,20 @@ class EAAppArtSmall(ServiceMedia):
     dest_path = os.path.join(settings.CACHE_DIR, "ea_app/pack-art-small")
     api_field = "packArtSmall"
 
-    def get_media_url(self, details):
-        return details["imageServer"] + details["i18n"][self.api_field]
+    def get_media_url(self, details: Dict[str, Any]) -> Optional[str]:
+        image_server = details.get("imageServer")
+        if not image_server:
+            logger.warning("No field 'imageServer' in API game %s", details)
+            return None
+        i18n = details.get("i18n")
+        if not i18n:
+            logger.warning("No field 'i18n' in API game %s", details)
+            return None
+        field = i18n.get(self.api_field)
+        if not field:
+            logger.warning("No field 'i18n.%s' in API game %s", self.api_field, details)
+            return None
+        return image_server + field
 
 
 class EAAppArtMedium(EAAppArtSmall):
@@ -156,7 +170,7 @@ class EAAppService(OnlineService):
         "&locale=en_US&release_type=prod"
         "&redirect_uri=%s"
     ) % origin_redirect_uri
-    login_user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0 QtWebEngine/5.8.0"
+    login_user_agent = settings.DEFAULT_USER_AGENT + " QtWebEngine/5.8.0"
 
     def __init__(self):
         super().__init__()
@@ -174,7 +188,7 @@ class EAAppService(OnlineService):
 
     def login_callback(self, url):
         self.fetch_access_token()
-        self.emit("service-login")
+        SERVICE_LOGIN.fire(self)
 
     def fetch_access_token(self):
         token_data = self.get_access_token()

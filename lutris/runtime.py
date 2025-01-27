@@ -1,16 +1,18 @@
 """Runtime handling module"""
+
 import concurrent.futures
 import os
 import threading
 import time
 from gettext import gettext as _
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from lutris import settings
 from lutris.api import (
     check_stale_runtime_versions,
     download_runtime_versions,
     format_runner_version,
+    get_runtime_versions,
     get_time_from_api_date,
 )
 from lutris.gui.widgets.progress_box import ProgressInfo
@@ -21,14 +23,16 @@ from lutris.util.extract import extract_archive
 from lutris.util.jobs import AsyncCall
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
+from lutris.util.strings import parse_version
 from lutris.util.wine.d3d_extras import D3DExtrasManager
 from lutris.util.wine.dgvoodoo2 import dgvoodoo2Manager
 from lutris.util.wine.dxvk import DXVKManager
 from lutris.util.wine.dxvk_nvapi import DXVKNVAPIManager
+from lutris.util.wine.proton import PROTON_DIR
 from lutris.util.wine.vkd3d import VKD3DManager
-from lutris.util.wine.wine import get_installed_wine_versions
+from lutris.util.wine.wine import clear_wine_version_cache
 
-RUNTIME_DISABLED = os.environ.get("LUTRIS_RUNTIME", "").lower() in ("0", "off")
+RUNTIME_DISABLED = os.environ.get("LUTRIS_RUNTIME", "").casefold() in ("0", "off")
 DEFAULT_RUNTIME = "Ubuntu-18.04"
 
 DLL_MANAGERS = {
@@ -166,15 +170,15 @@ class RuntimeUpdater:
 
             if not self.update_runtime:
                 logger.warning("Runtime updates are disabled. This configuration is not supported.")
-            if not self.update_runners:
-                logger.warning(
-                    "Wine updates have been disabled. To receive support on Github or Discord, "
-                    "switch back to the stable channel"
-                )
 
             if not check_stale_runtime_versions():
                 self.update_runtime = False
                 self.update_runners = False
+
+        if self.has_updates:
+            self.runtime_versions = download_runtime_versions()
+        else:
+            self.runtime_versions = get_runtime_versions()
 
     @property
     def has_updates(self):
@@ -188,19 +192,36 @@ class RuntimeUpdater:
 
         This method also downloads fresh runner versions on each call, so we call this on a
         worker thread, instead of blocking the UI."""
-        if not self.has_updates:
+        if not self.runtime_versions:
             return []
 
-        runtime_versions = download_runtime_versions()
         updaters: List[ComponentUpdater] = []
 
         if self.update_runtime:
-            updaters += self._get_runtime_updaters(runtime_versions)
+            updaters += self._get_runtime_updaters(self.runtime_versions)
 
         if self.update_runners:
-            updaters += self._get_runner_updaters(runtime_versions)
+            updaters += self._get_runner_updaters(self.runtime_versions)
 
         return [u for u in updaters if u.should_update]
+
+    def check_client_versions(self) -> Optional[str]:
+        """Checks if the client is of an old version and no longer supported; this can be blocked
+        with an env-var, and can be temporarily ignored as well, but if we're out of date, then
+        this method returns the version of Lutris that is required. If we're good, or we are ignoring
+        the problem, this returns None.
+
+        I expect that most users will not discover the env-var, so they will be prompted
+        on each new Lutris release."""
+        if self.runtime_versions and not os.environ.get("LUTRIS_NO_CLIENT_VERSION_CHECK"):
+            client_version = self.runtime_versions.get("client_version")
+            if client_version:
+                if parse_version(client_version) > parse_version(settings.VERSION):
+                    ignored = settings.read_setting("ignored_supported_lutris_verison")
+                    if not ignored or ignored != client_version:
+                        return client_version
+
+        return None
 
     @staticmethod
     def _get_runtime_updaters(runtime_versions: Dict[str, Any]) -> List[ComponentUpdater]:
@@ -212,8 +233,10 @@ class RuntimeUpdater:
                 continue
 
             try:
-                if remote_runtime.get("url"):
-                    updaters.append(RuntimeExtractedComponentUpdater(remote_runtime))
+                url = remote_runtime.get("url")
+                if url:
+                    if "-proton" not in os.path.basename(url).casefold():
+                        updaters.append(RuntimeExtractedComponentUpdater(remote_runtime))
                 else:
                     updaters.append(RuntimeFilesComponentUpdater(remote_runtime))
             except Exception as ex:
@@ -226,23 +249,40 @@ class RuntimeUpdater:
         """Update installed runners (only works for Wine at the moment)"""
         updaters: List[ComponentUpdater] = []
         upstream_runners = runtime_versions.get("runners", {})
-        for name, upstream_runners in upstream_runners.items():
+        for name, runner_set in upstream_runners.items():
             if name != "wine":
                 continue
             upstream_runner = None
-            for _runner in upstream_runners:
-                if _runner["architecture"] == LINUX_SYSTEM.arch:
-                    upstream_runner = _runner
+            for runner in runner_set:
+                if runner["architecture"] == LINUX_SYSTEM.arch:
+                    upstream_runner = runner
 
             if upstream_runner:
                 updaters.append(RunnerComponentUpdater(name, upstream_runner))
+
+        for name, remote_runtime in runtime_versions.get("runtimes", {}).items():
+            if remote_runtime["architecture"] == "x86_64" and not LINUX_SYSTEM.is_64_bit:
+                continue
+
+            try:
+                # This one runtime is really a runner!
+                url = remote_runtime.get("url")
+                if url and "-proton" in os.path.basename(url).casefold():
+                    updaters.append(ProtonComponentUpdater(remote_runtime))
+            except Exception as ex:
+                logger.exception("Unable to download %s: %s", name, ex)
 
         return updaters
 
 
 class RuntimeComponentUpdater(ComponentUpdater):
     """A base class for component updates that use the timestamp from a runtime-info dict
-    to decide when an update is required."""
+    to decide when an update is required.
+
+    These dicts are part of the 'versions.json' file, sent down from the server. They describe
+    what versions of components are available from the server. This dict includes the modification
+    date-time of the component, and we compare it to the mtime of the relevant directory.
+    """
 
     def __init__(self, remote_runtime_info: Dict[str, Any]) -> None:
         self.remote_runtime_info = remote_runtime_info
@@ -254,6 +294,12 @@ class RuntimeComponentUpdater(ComponentUpdater):
     @property
     def name(self) -> str:
         return self.remote_runtime_info["name"]
+
+    @property
+    def local_runtime_path(self) -> str:
+        """Return the local path for the runtime directory where the component
+        is kept."""
+        return os.path.join(settings.RUNTIME_DIR, self.name)
 
     def install_update(self, updater: "RuntimeUpdater") -> None:
         raise NotImplementedError
@@ -268,11 +314,6 @@ class RuntimeComponentUpdater(ComponentUpdater):
             return ProgressInfo(0.0, status_text)
 
         return ProgressInfo(None, status_text)
-
-    @property
-    def local_runtime_path(self) -> str:
-        """Return the local path for the runtime folder"""
-        return os.path.join(settings.RUNTIME_DIR, self.name)
 
     def get_updated_at(self) -> time.struct_time:
         """Return the modification date of the runtime folder"""
@@ -289,7 +330,7 @@ class RuntimeComponentUpdater(ComponentUpdater):
     def should_update(self) -> bool:
         """Determine if the current runtime should be updated"""
         if self.versioned:
-            return not system.path_exists(os.path.join(settings.RUNTIME_DIR, self.name, self.version))
+            return not system.path_exists(os.path.join(self.local_runtime_path, self.version))
 
         try:
             local_updated_at = self.get_updated_at()
@@ -327,11 +368,16 @@ class RuntimeExtractedComponentUpdater(RuntimeComponentUpdater):
 
         return progress_info
 
+    @property
+    def archive_path(self):
+        """This is the path where the archive is downloaded, before being extracted."""
+        return os.path.join(settings.RUNTIME_DIR, os.path.basename(self.url))
+
     def install_update(self, updater: RuntimeUpdater) -> None:
         self.state = ComponentUpdater.DOWNLOADING
         self.complete_event.clear()
 
-        archive_path = os.path.join(settings.RUNTIME_DIR, os.path.basename(self.url))
+        archive_path = self.archive_path
         self.downloader = Downloader(self.url, archive_path, overwrite=True)
         self.downloader.start()
         self.downloader.join()
@@ -380,7 +426,9 @@ class RuntimeExtractedComponentUpdater(RuntimeComponentUpdater):
             return
         directory, _filename = os.path.split(path)
 
+        # Determine the destination path
         dest_path = os.path.join(directory, self.name)
+
         if self.versioned:
             dest_path = os.path.join(dest_path, self.version)
         else:
@@ -390,6 +438,35 @@ class RuntimeExtractedComponentUpdater(RuntimeComponentUpdater):
         self.state = ComponentUpdater.EXTRACTING
         archive_path, _destination_path = extract_archive(path, dest_path, merge_single=True)
         os.unlink(archive_path)
+
+
+class ProtonComponentUpdater(RuntimeExtractedComponentUpdater):
+    """This is a special case updater for a runtime that is secretly a runner;
+    it's placed in subdirectory under ~/.local/share/lutris/runners/proton,
+    and with a custom directory name for some reason."""
+
+    def __init__(self, remote_runtime_info: Dict[str, Any]) -> None:
+        super().__init__(remote_runtime_info)
+
+    @property
+    def should_update(self) -> bool:
+        wine_dir = os.path.join(settings.RUNNER_DIR, "wine")
+        return os.path.isdir(wine_dir) and super().should_update
+
+    @property
+    def local_runtime_path(self) -> str:
+        """Return the local path for the runtime folder"""
+        return os.path.join(PROTON_DIR, self.name)
+
+    @property
+    def archive_path(self):
+        return os.path.join(PROTON_DIR, os.path.basename(self.url))
+
+    def install_update(self, updater: RuntimeUpdater) -> None:
+        # This is a bit of a hack, but until Proton is a real runner we never really isntall it, so
+        # it's directory may not exist. So, we create it.
+        os.makedirs(PROTON_DIR, exist_ok=True)
+        return super().install_update(updater)
 
 
 class RuntimeFilesComponentUpdater(RuntimeComponentUpdater):
@@ -419,7 +496,7 @@ class RuntimeFilesComponentUpdater(RuntimeComponentUpdater):
 
     def _should_update_component(self, filename: str, remote_modified_at: time.struct_time) -> bool:
         """Should an individual component be updated?"""
-        file_path = os.path.join(settings.RUNTIME_DIR, self.name, filename)
+        file_path = os.path.join(self.local_runtime_path, filename)
         if not system.path_exists(file_path):
             return True
         locally_modified_at = time.gmtime(os.path.getmtime(file_path))
@@ -441,7 +518,7 @@ class RuntimeFilesComponentUpdater(RuntimeComponentUpdater):
 
     def _download_component(self, component: Dict[str, Any]) -> None:
         """Download an individual file from a runtime item"""
-        file_path = os.path.join(settings.RUNTIME_DIR, self.name, component["filename"])
+        file_path = os.path.join(self.local_runtime_path, component["filename"])
         http.download_file(component["url"], file_path)
 
 
@@ -465,13 +542,7 @@ class RunnerComponentUpdater(ComponentUpdater):
     def should_update(self):
         # This has the responsibility to update existing runners, not installing new ones
         runner_base_path = os.path.join(settings.RUNNER_DIR, self.name)
-        if not system.path_exists(runner_base_path) or not os.listdir(runner_base_path):
-            return False
-
-        if system.path_exists(self.version_path):
-            return False
-
-        return True
+        return system.path_exists(runner_base_path) and not system.path_exists(self.version_path)
 
     def install_update(self, updater: "RuntimeUpdater") -> None:
         url = self.upstream_runner["url"]
@@ -484,7 +555,7 @@ class RunnerComponentUpdater(ComponentUpdater):
             self.downloader = None
             self.state = ComponentUpdater.EXTRACTING
             extract_archive(archive_download_path, self.version_path)
-            get_installed_wine_versions.cache_clear()
+            clear_wine_version_cache()
 
         os.remove(archive_download_path)
         self.state = ComponentUpdater.COMPLETED

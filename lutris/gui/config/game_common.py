@@ -1,4 +1,5 @@
 """Shared config dialog stuff"""
+
 # pylint: disable=not-an-iterable
 import os.path
 import shutil
@@ -9,11 +10,12 @@ from gi.repository import GdkPixbuf, Gtk, Pango
 from lutris import runners, settings
 from lutris.config import LutrisConfig, make_game_config_id
 from lutris.game import Game
-from lutris.gui import dialogs
 from lutris.gui.config import DIALOG_HEIGHT, DIALOG_WIDTH
-from lutris.gui.config.boxes import GameBox, RunnerBox, SystemConfigBox, UnderslungMessageBox
-from lutris.gui.dialogs import DirectoryDialog, ErrorDialog, QuestionDialog, SavableModelessDialog
+from lutris.gui.config.boxes import GameBox, RunnerBox, SystemConfigBox
+from lutris.gui.config.widget_generator import WidgetWarningMessageBox
+from lutris.gui.dialogs import DirectoryDialog, ErrorDialog, QuestionDialog, SavableModelessDialog, display_error
 from lutris.gui.dialogs.delegates import DialogInstallUIDelegate
+from lutris.gui.dialogs.move_game import MoveDialog
 from lutris.gui.widgets.common import Label, NumberEntry, SlugEntry
 from lutris.gui.widgets.notifications import send_notification
 from lutris.gui.widgets.scaled_image import ScaledImage
@@ -48,6 +50,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         self.game = None
         self.saved = None
         self.slug = None
+        self.initial_slug = None
         self.slug_entry = None
         self.directory_entry = None
         self.year_entry = None
@@ -66,6 +69,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         self.lutris_config = None
         self.service_medias = {"icon": LutrisIcon(), "banner": LutrisBanner(), "coverart_big": LutrisCoverart()}
         self.notebook_page_generators = {}
+        self.notebook_page_updater = {}
 
         self.build_header_bar()
 
@@ -88,6 +92,10 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         if generator:
             generator()
             del self.notebook_page_generators[index]
+        else:
+            updater = self.notebook_page_updater.get(index)
+            if updater:
+                updater()
 
         self.update_advanced_switch_visibility(index)
         self.update_search_entry_visibility(index)
@@ -121,12 +129,13 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
             show_search = current_page_index in self.searchable_page_indices
             self.set_search_entry_visibility(show_search)
 
-    def set_search_entry_visibility(self, show_search, placeholder_text=None):
+    def set_search_entry_visibility(self, show_search, placeholder_text=None, tooltip_markup=None):
         """Explicitly shows or hides the search entry; can also update the placeholder text."""
         header_bar = self.get_header_bar()
         if show_search and self.search_entry:
             header_bar.set_custom_title(self.search_entry)
             self.search_entry.set_placeholder_text(placeholder_text or self.get_search_entry_placeholder())
+            self.search_entry.set_tooltip_markup(tooltip_markup)
         else:
             header_bar.set_custom_title(None)
 
@@ -153,7 +162,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
 
         self.runner_warning_box = RunnerMessageBox()
         info_box.pack_start(self.runner_warning_box, False, False, 6)  # Runner
-        self.runner_warning_box.update_warning(self.runner_name)
+        self.runner_warning_box.update_message(self.runner_name)
 
         info_box.pack_start(self._get_year_box(), False, False, 6)  # Year
 
@@ -345,8 +354,13 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         service_media = self.service_medias[image_format]
         game_slug = self.slug or (self.game.slug if self.game else "")
         media_path = resolve_media_path(service_media.get_possible_media_paths(game_slug))
-        image = ScaledImage.new_from_media_path(media_path, service_media.config_ui_size, scale_factor)
-        image_button.set_image(image)
+        try:
+            image = ScaledImage.new_from_media_path(media_path, service_media.config_ui_size, scale_factor)
+            image_button.set_image(image)
+        except Exception as ex:
+            # We need to survive nasty data in the media files, so the user can replace
+            # them.
+            logger.exception("Unable to load media '%s': %s", image_format, ex)
 
     def _get_runner_dropdown(self):
         runner_liststore = self._get_runner_liststore()
@@ -404,7 +418,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         )
         if not new_location.folder or new_location.folder == self.game.directory:
             return
-        move_dialog = dialogs.MoveDialog(self.game, new_location.folder, parent=self)
+        move_dialog = MoveDialog(self.game, new_location.folder, parent=self)
         move_dialog.connect("game-moved", self.on_game_moved)
         move_dialog.move()
 
@@ -470,6 +484,8 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         config_box = box_factory()
         page_index = self._add_notebook_tab(self.build_scrolled_window(config_box), notebook_label)
 
+        self.notebook_page_updater[page_index] = config_box.update_widgets
+
         if page_index == 0:
             config_box.generate_widgets()
         else:
@@ -501,7 +517,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
         switch_label = Gtk.Label(_("Advanced"), no_show_all=True, visible=True)
         switch = Gtk.Switch(no_show_all=True, visible=True, valign=Gtk.Align.CENTER)
         switch.set_state(settings.read_setting("show_advanced_options") == "True")
-        switch.connect("state_set", lambda _w, s: self.on_show_advanced_options_toggled(bool(s)))
+        switch.connect("state-set", lambda _w, s: self.on_show_advanced_options_toggled(bool(s)))
 
         switch_box.pack_start(switch_label, False, False, 0)
         switch_box.pack_end(switch, False, False, 0)
@@ -586,7 +602,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
             self.runner_name = runner_name
             self.lutris_config = LutrisConfig(runner_slug=self.runner_name, level="game")
         self._rebuild_tabs()
-        self.runner_warning_box.update_warning(self.runner_name)
+        self.runner_warning_box.update_message(self.runner_name)
         self.notebook.set_current_page(current_page)
 
     def _rebuild_tabs(self):
@@ -618,11 +634,11 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
             ErrorDialog(_("Steam AppID not provided"), parent=self)
             return False
         playtime_text = self.playtime_entry.get_text()
-        if playtime_text and playtime_text != self.game.formatted_playtime:
+        if playtime_text and (not self.game or playtime_text != self.game.formatted_playtime):
             try:
                 parse_playtime(playtime_text)
             except ValueError as ex:
-                ErrorDialog(ex, parent=self)
+                display_error(ex, parent=self)
                 return False
 
         invalid_fields = []
@@ -655,7 +671,8 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
 
         if not self.slug:
             self.slug = slugify(name)
-
+        if self.slug != self.initial_slug:
+            AsyncCall(download_lutris_media, None, self.slug)
         if not self.game:
             self.game = Game()
 
@@ -711,7 +728,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
     def on_custom_image_reset_clicked(self, _widget, image_type):
         self.refresh_image(image_type)
 
-    def save_custom_media(self, image_type, image_path):
+    def save_custom_media(self, image_type: str, image_path: str) -> None:
         slug = self.slug or self.game.slug
         service_media = self.service_medias[image_type]
         self.game.custom_images.add(image_type)
@@ -728,7 +745,7 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
 
             self._save_transcoded_media_to(dest_paths[0], image_type, image_path)
 
-    def _save_copied_media_to(self, dest_path, image_type, image_path):
+    def _save_copied_media_to(self, dest_path: str, image_type: str, image_path: str) -> None:
         """Copies a media file to the dest_path, but trashes the existing media
         for the game first. When complete, this updates the button indicated by
         image_type as well."""
@@ -745,14 +762,15 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
 
         service_media.trash_media(slug, completion_function=on_trashed)
 
-    def _save_transcoded_media_to(self, dest_path, image_type, image_path):
+    def _save_transcoded_media_to(self, dest_path: str, image_type: str, image_path: str) -> None:
         """Transcode an image, copying it to a new path and selecting the file type
         based on the file extension of dest_path. Trashes all media for the current
         game too. Runs in the background, and when complete updates the button indicated
         by image_type."""
         slug = self.slug or self.game.slug
         service_media = self.service_medias[image_type]
-        file_format = {".jpg": "jpeg", ".png": "png"}[get_image_file_extension(dest_path)]
+        ext = get_image_file_extension(dest_path) or ".png"
+        file_format = {".jpg": "jpeg", ".png": "png"}[ext]
 
         # If we must transcode the image, we'll scale the image up based on
         # the UI scale factor, to try to avoid blurriness. Of course this won't
@@ -805,11 +823,11 @@ class GameDialogCommon(SavableModelessDialog, DialogInstallUIDelegate):
             service_media.run_system_update_desktop_icons()
 
 
-class RunnerMessageBox(UnderslungMessageBox):
+class RunnerMessageBox(WidgetWarningMessageBox):
     def __init__(self):
         super().__init__(margin_left=12, margin_right=12, icon_name="dialog-warning")
 
-    def update_warning(self, runner_name):
+    def update_message(self, runner_name):
         try:
             if runner_name:
                 runner_class = import_runner(runner_name)

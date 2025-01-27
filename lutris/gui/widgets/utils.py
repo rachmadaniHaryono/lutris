@@ -1,6 +1,8 @@
 """Various utilities using the GObject framework"""
+
 import array
 import os
+from typing import Optional
 
 import cairo
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
@@ -38,17 +40,21 @@ def open_uri(uri):
     system.spawn(["xdg-open", uri])
 
 
-def get_image_file_extension(path):
+def get_image_file_extension(path: str) -> Optional[str]:
     """Returns the canonical file extension for an image,
     either 'jpg' or 'png'; we deduce this from the file extension, or if that fails the
     file's 'magic' prefix bytes."""
     ext = os.path.splitext(path)[1].casefold()
     if ext in [".jpg", ".jpeg"]:
         return ".jpg"
-    if path == ".png":
+    if ext == ".png":
         return ".png"
 
-    file_type = magic.from_file(path).casefold()
+    try:
+        file_type = magic.from_file(path).casefold()
+    except OSError:
+        return None  # file is missing, or can't read it
+
     if "jpeg image data" in file_type:
         return ".jpg"
     if "png image data" in file_type:
@@ -76,9 +82,12 @@ def get_scaled_surface_by_path(path, size, device_scale, preserve_aspect_ratio=T
     If you pass True for preserve_aspect_ratio, the aspect ratio of the image is preserved,
     but will be no larger than the size (times the device_scale).
 
-    If the path cannot be read, this returns None.
+    If there's no file at the path, or it is empty, this function returns None.
     """
     pixbuf = get_pixbuf_by_path(path)
+    if not pixbuf:
+        return None
+
     pixbuf_width = pixbuf.get_width()
     pixbuf_height = pixbuf.get_height()
 
@@ -115,21 +124,32 @@ def get_default_icon_path(size):
 def get_pixbuf_by_path(path, size=None, preserve_aspect_ratio=True):
     """Reads an image file and returns the pixbuf. If you provide a size, this scales
     the file to fit that size, preserving the aspect ratio if preserve_aspect_ratio is
-    True. If the file is missing or unreadable, or if 'path' is None, this raises
-    MissingMediaError."""
+    True. If the file is missing or empty, or if 'path' is None or empty,
+    this returns None. Still raises GLib.GError for corrupt files."""
     if not system.path_exists(path, exclude_empty=True):
-        raise MissingMediaError(filename=path)
+        return None
 
+    if size:
+        # new_from_file_at_size scales but preserves aspect ratio
+        width, height = size
+        if preserve_aspect_ratio:
+            return GdkPixbuf.Pixbuf.new_from_file_at_size(path, width, height)
+
+        return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, width, height, preserve_aspect_ratio=False)
+
+    return GdkPixbuf.Pixbuf.new_from_file(path)
+
+
+def get_required_pixbuf_by_path(path, size=None, preserve_aspect_ratio=True):
+    """Reads an image file and returns the pixbuf. If you provide a size, this scales
+    the file to fit that size, preserving the aspect ratio if preserve_aspect_ratio is
+    True. If the file is missing or unreadable, or if 'path' is None or empty, this raises
+    MissingMediaError."""
     try:
-        if size:
-            # new_from_file_at_size scales but preserves aspect ratio
-            width, height = size
-            if preserve_aspect_ratio:
-                return GdkPixbuf.Pixbuf.new_from_file_at_size(path, width, height)
-
-            return GdkPixbuf.Pixbuf.new_from_file_at_scale(path, width, height, preserve_aspect_ratio=False)
-
-        return GdkPixbuf.Pixbuf.new_from_file(path)
+        pixbuf = get_pixbuf_by_path(path, size, preserve_aspect_ratio)
+        if not pixbuf:
+            raise MissingMediaError(filename=path)
+        return pixbuf
     except GLib.GError as ex:
         logger.exception("Unable to load icon from image %s", path)
         raise MissingMediaError(message=str(ex), filename=path) from ex
@@ -153,7 +173,7 @@ def get_runtime_icon_path(icon_name):
     icon_name -- The name of the icon to retrieve
 
     Returns:
-        The path to the icon, or raises MissingMediaError if it wasn't found.
+        The path to the icon, or None if it wasn't found.
     """
     filename = icon_name.lower().replace(" ", "")
     # We prefer bitmaps over SVG, because we've got some SVG icons with the
@@ -171,7 +191,7 @@ def get_runtime_icon_path(icon_name):
             icon_path = os.path.join(settings.RUNTIME_DIR, search_dir, filename + ext)
             if os.path.exists(icon_path):
                 return icon_path
-    raise MissingMediaError("The icon '%s' could not be found." % icon_name)
+    return None
 
 
 def convert_to_background(background_path, target_size=(320, 1080)):
