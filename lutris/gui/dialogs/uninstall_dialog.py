@@ -6,13 +6,13 @@ from typing import Callable, Iterable, List
 from gi.repository import GObject, Gtk
 
 from lutris import settings
-from lutris.database.games import get_games
+from lutris.database.games import get_game_by_field, get_games
 from lutris.game import Game
 from lutris.gui.dialogs import QuestionDialog
 from lutris.gui.widgets.gi_composites import GtkTemplate
 from lutris.util import datapath
 from lutris.util.jobs import AsyncCall
-from lutris.util.library_sync import delete_from_remote_library, sync_local_library
+from lutris.util.library_sync import LibrarySyncer
 from lutris.util.log import logger
 from lutris.util.path_cache import remove_from_path_cache
 from lutris.util.strings import get_natural_sort_key, gtk_safe, human_size
@@ -208,7 +208,7 @@ class UninstallDialog(Gtk.Dialog):
 
                 update(
                     self.remove_all_games_checkbox,
-                    lambda row: row.game.is_installed,
+                    lambda row: True,
                     lambda row: row.remove_from_library,
                 )
             finally:
@@ -229,8 +229,7 @@ class UninstallDialog(Gtk.Dialog):
     @GtkTemplate.Callback
     def on_remove_all_games_checkbox_toggled(self, _widget):
         def update_row(row, active):
-            if row.game.is_installed:
-                row.remove_from_library = active
+            row.remove_from_library = active
 
         self._apply_all_checkbox(self.remove_all_games_checkbox, update_row)
 
@@ -280,17 +279,18 @@ class UninstallDialog(Gtk.Dialog):
 
         games_removed_from_library = []
         if settings.read_bool_setting("library_sync_enabled"):
+            library_syncer = LibrarySyncer()
             for row in rows:
                 if row.remove_from_library:
-                    games_removed_from_library.append(row.game.as_library_item)
+                    games_removed_from_library.append(get_game_by_field(row.game._id, "id"))
             if games_removed_from_library:
-                sync_local_library()
+                library_syncer.sync_local_library()
 
         for row in rows:
             row.perform_removal()
 
         if settings.read_bool_setting("library_sync_enabled") and games_removed_from_library:
-            delete_from_remote_library(games_removed_from_library)
+            library_syncer.delete_from_remote_library(games_removed_from_library)
         self.parent.on_game_removed()
         self.destroy()
 
@@ -351,8 +351,7 @@ class GameRemovalRow(Gtk.ListBoxRow):
         hbox.pack_start(label, False, False, 0)
 
         self.remove_from_library_checkbox = Gtk.CheckButton(_("Remove from Library"), halign=Gtk.Align.START)
-        self.remove_from_library_checkbox.set_sensitive(game.is_installed)
-        self.remove_from_library_checkbox.set_active(True)
+        self.remove_from_library_checkbox.set_active(False)
         self.remove_from_library_checkbox.connect("toggled", self.on_checkbox_toggled)
         hbox.pack_end(self.remove_from_library_checkbox, False, False, 0)
 
@@ -435,9 +434,7 @@ class GameRemovalRow(Gtk.ListBoxRow):
 
     @property
     def remove_from_library(self) -> bool:
-        """True if the game should be rmoved from the database."""
-        if not self.game.is_installed:
-            return True
+        """True if the game should be removed from the database."""
         return bool(self.remove_from_library_checkbox.get_active())
 
     @remove_from_library.setter

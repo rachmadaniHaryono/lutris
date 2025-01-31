@@ -1,14 +1,22 @@
 """Window used for game installers"""
+
 # pylint: disable=too-many-lines
 import os
+import traceback
 from gettext import gettext as _
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from lutris import settings
 from lutris.config import LutrisConfig
 from lutris.game import Game
-from lutris.gui.dialogs import DirectoryDialog, ErrorDialog, InstallerSourceDialog, ModelessDialog, QuestionDialog
+from lutris.gui.dialogs import (
+    DirectoryDialog,
+    InstallerSourceDialog,
+    ModelessDialog,
+    QuestionDialog,
+    display_error,
+)
 from lutris.gui.dialogs.cache import CacheConfigurationDialog
 from lutris.gui.dialogs.delegates import DialogInstallUIDelegate
 from lutris.gui.installer.files_box import InstallerFilesBox
@@ -22,7 +30,7 @@ from lutris.installer.interpreter import ScriptInterpreter
 from lutris.util import xdgshortcuts
 from lutris.util.jobs import AsyncCall
 from lutris.util.linux import LINUX_SYSTEM
-from lutris.util.log import logger
+from lutris.util.log import get_log_contents, logger
 from lutris.util.steam import shortcut as steam_shortcut
 from lutris.util.strings import human_size
 from lutris.util.system import is_removeable
@@ -142,7 +150,8 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
         self.installer_files_box.connect("files-ready", self.on_files_ready)
 
         self.log_buffer = Gtk.TextBuffer()
-        self.error_reporter = self.load_error_message_page
+        self.error_details_buffer = Gtk.TextBuffer()
+        self.error_reporter = self.load_error_page
 
         self.load_choose_installer_page()
 
@@ -256,15 +265,18 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
 
     def _handle_callback_error(self, error):
         if self.install_in_progress:
-            self.load_error_message_page(str(error))
+            self.load_error_page(error)
         else:
-            ErrorDialog(error, parent=self)
+            display_error(error, parent=self)
             self.stack.navigation_reset()
 
     def set_status(self, text):
         """Display a short status text."""
         self.status_label.set_text(text)
         self.status_label.set_visible(bool(text))
+
+    def get_status(self):
+        return self.status_label.get_text() if self.status_label.get_visible() else ""
 
     def register_page_creators(self):
         self.stack.add_named_factory("choose_installer", self.create_choose_installer_page)
@@ -273,6 +285,7 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
         self.stack.add_named_factory("extras", self.create_extras_page)
         self.stack.add_named_factory("spinner", self.create_spinner_page)
         self.stack.add_named_factory("log", self.create_log_page)
+        self.stack.add_named_factory("error", self.create_error_page)
         self.stack.add_named_factory("nothing", lambda *x: Gtk.Box())
 
     # Interpreter UI Delegate
@@ -281,8 +294,7 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
     # so the installation itself is not interrupted or paused for UI updates.
 
     def report_error(self, error):
-        message = repr(error)
-        GLib.idle_add(self.error_reporter, message)
+        GLib.idle_add(self.error_reporter, error)
 
     def report_status(self, status):
         GLib.idle_add(self.set_status, status)
@@ -412,7 +424,7 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
         vbox.pack_start(menu_shortcut_button, False, False, 0)
 
         if steam_shortcut.vdf_file_exists():
-            steam_shortcut_button = Gtk.CheckButton(_("Create steam shortcut"), visible=True)
+            steam_shortcut_button = Gtk.CheckButton(_("Create Steam shortcut"), visible=True)
             steam_shortcut_button.set_active(settings.read_bool_setting("installer_create_steam_shortcut", False))
             steam_shortcut_button.connect("clicked", self.on_create_steam_shortcut_clicked)
             vbox.pack_start(steam_shortcut_button, False, False, 0)
@@ -738,7 +750,7 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
                 except Exception as err:
                     # If the callback fails, the installation does not continue
                     # to run, so we'll go to error page.
-                    self.load_error_message_page(str(err))
+                    self.load_error_page(err)
 
             model = Gtk.ListStore(str, str)
 
@@ -786,7 +798,7 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
                 except Exception as err:
                     # If the callback fails, the installation does not continue
                     # to run, so we'll go to error page.
-                    self.load_error_message_page(str(err))
+                    self.load_error_page(err)
 
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             label = MarkupLabel(message)
@@ -836,18 +848,64 @@ class InstallerWindow(ModelessDialog, DialogInstallUIDelegate, ScriptInterpreter
 
     # Error Message Page
     #
-    # This is used to display an error; such a error halts the installation,
+    # This is used to display an error; such an error halts the installation,
     # and isn't recoverable. Used by the installer script.
 
-    def load_error_message_page(self, message):
-        self.stack.navigate_to_page(lambda *x: self.present_error_page(message))
+    def load_error_page(self, error: BaseException) -> None:
+        self.stack.navigate_to_page(lambda *x: self.present_error_page(error))
         self.stack.set_back_allowed(False)
         self.cancel_button.grab_focus()
 
-    def present_error_page(self, message):
-        self.set_status(message)
-        self.stack.present_page("nothing")
+    def present_error_page(self, error: BaseException) -> None:
+        self.set_status(str(error))
+
+        formatted = traceback.format_exception(type(error), error, error.__traceback__)
+        formatted = "\n".join(formatted).strip()
+
+        log = get_log_contents()
+        if log:
+            formatted = f"{formatted}\n\nLutris log:\n{log}".strip()
+
+        self.error_details_buffer.set_text(formatted)
+
+        self.stack.present_page("error")
         self.display_cancel_button()
+
+    def create_error_page(self) -> Gtk.Widget:
+        def on_copy_clicked(_button):
+            status = self.get_status()
+            details = self.error_details_buffer.get_text(
+                self.error_details_buffer.get_start_iter(), self.error_details_buffer.get_end_iter(), True
+            )
+            text = f"{status}\n\n{details}"
+            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            clipboard.set_text(text, -1)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        label = Gtk.Label(xalign=0.0, wrap=True)
+        label.set_markup(
+            _(
+                "An unexpected error has occurred while installing this game. "
+                "Please share the details below with the Lutris team on "
+                "<a href='https://github.com/lutris/lutris'>GitHub</a> or "
+                "<a href='https://discordapp.com/invite/Pnt5CuY'>Discord</a>."
+            )
+        )
+        box.pack_start(label, False, False, 0)
+        frame = Gtk.Frame(shadow_type=Gtk.ShadowType.ETCHED_IN)
+
+        details_textview = Gtk.TextView(editable=False, buffer=self.error_details_buffer)
+
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.add(details_textview)
+        frame.add(scrolledwindow)
+        box.pack_start(frame, True, True, 0)
+
+        copy_button = Gtk.Button(_("Copy Details to Clipboard"), halign=Gtk.Align.START)
+        box.pack_end(copy_button, False, True, 0)
+        copy_button.connect("clicked", on_copy_clicked)
+
+        return box
 
     # Finished Page
     #

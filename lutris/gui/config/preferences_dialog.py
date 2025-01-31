@@ -1,8 +1,10 @@
 """Configuration dialog for client and system options"""
+
 # pylint: disable=no-member
 from gettext import gettext as _
+from textwrap import dedent
 
-from gi.repository import GObject, Gtk
+from gi.repository import Gtk
 
 from lutris.config import LutrisConfig
 from lutris.gui.config.accounts_box import AccountsBox
@@ -17,10 +19,6 @@ from lutris.gui.config.updates_box import UpdatesBox
 
 
 class PreferencesDialog(GameDialogCommon):
-    __gsignals__ = {
-        "settings-changed": (GObject.SIGNAL_RUN_LAST, None, (bool, str)),
-    }
-
     def __init__(self, parent=None):
         super().__init__(_("Lutris settings"), config_level="system", parent=parent)
         self.set_border_width(0)
@@ -63,15 +61,19 @@ class PreferencesDialog(GameDialogCommon):
         self.page_generators["accounts-stack"] = accounts_box.populate_steam_accounts
         self.stack.add_named(self.build_scrolled_window(accounts_box), "accounts-stack")
 
-        self.stack.add_named(self.build_scrolled_window(UpdatesBox()), "updates-stack")
+        updates_box = UpdatesBox()
+        self.page_generators["updates-stack"] = updates_box.populate
+        self.stack.add_named(self.build_scrolled_window(updates_box), "updates-stack")
 
         sysinfo_box = SystemBox()
         self.page_generators["sysinfo-stack"] = sysinfo_box.populate
         self.stack.add_named(self.build_scrolled_window(sysinfo_box), "sysinfo-stack")
 
-        self.stack.add_named(self.build_scrolled_window(StorageBox()), "storage-stack")
+        storage_box = StorageBox()
+        self.page_generators["storage-stack"] = storage_box.populate
+        self.stack.add_named(self.build_scrolled_window(storage_box), "storage-stack")
 
-        self.system_box = SystemConfigBox(self.config_level, self.lutris_config)
+        self.system_box = SystemConfigBox(self.config_level, self.lutris_config, visible=True)
         self.page_generators["system-stack"] = self.system_box.generate_widgets
         self.stack.add_named(self.build_scrolled_window(self.system_box), "system-stack")
 
@@ -90,7 +92,15 @@ class PreferencesDialog(GameDialogCommon):
         if stack_id == "system-stack":
             self.set_search_entry_visibility(True)
         elif stack_id == "runners-stack":
-            self.set_search_entry_visibility(True, self.runners_box.search_entry_placeholder_text)
+            tooltip_markup = """
+            Enter the name or description of a runner to search for, or use search terms:
+
+            <b>installed:</b><i>true</i>	    Only installed runners.
+            """
+            tooltip_markup = dedent(tooltip_markup).strip()
+            self.set_search_entry_visibility(
+                True, self.runners_box.search_entry_placeholder_text, tooltip_markup=tooltip_markup
+            )
         else:
             self.set_search_entry_visibility(False)
 

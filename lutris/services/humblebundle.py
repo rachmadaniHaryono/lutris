@@ -1,4 +1,5 @@
 """Manage Humble Bundle libraries"""
+
 import concurrent.futures
 import json
 import os
@@ -11,7 +12,7 @@ from lutris.exceptions import UnavailableGameError
 from lutris.gui.dialogs import HumbleBundleCookiesDialog, QuestionDialog
 from lutris.installer import AUTO_ELF_EXE, AUTO_WIN32_EXE
 from lutris.installer.installer_file import InstallerFile
-from lutris.services.base import OnlineService
+from lutris.services.base import SERVICE_LOGIN, OnlineService
 from lutris.services.service_game import ServiceGame
 from lutris.services.service_media import ServiceMedia
 from lutris.util import linux
@@ -93,7 +94,7 @@ class HumbleBundleService(OnlineService):
             if dialog.cookies_content:
                 with open(self.cookies_path, "w", encoding="utf-8") as cookies_file:
                     cookies_file.write(dialog.cookies_content)
-                self.login_callback(None)
+                SERVICE_LOGIN.fire(self)
             else:
                 self.logout()
         else:
@@ -101,7 +102,7 @@ class HumbleBundleService(OnlineService):
 
     def login_callback(self, url):
         """Called after the user has logged in successfully"""
-        self.emit("service-login")
+        SERVICE_LOGIN.fire(self)
 
     def is_connected(self):
         """This doesn't actually check if the authentication

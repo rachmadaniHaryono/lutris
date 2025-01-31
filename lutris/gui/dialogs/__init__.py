@@ -1,22 +1,24 @@
 """Commonly used dialogs"""
+
+import inspect
 import os
 import traceback
+from builtins import BaseException
 from gettext import gettext as _
-from typing import Callable, Union
+from typing import Any, Callable, Dict, Type, TypeVar, Union
 
 import gi
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gdk, GLib, GObject, Gtk
+from gi.repository import Gdk, GObject, Gtk
 
 from lutris import api, settings
-from lutris.exceptions import InvalidGameMoveError
 from lutris.gui.widgets.log_text_view import LogTextView
 from lutris.util import datapath
-from lutris.util.jobs import AsyncCall
-from lutris.util.log import logger
+from lutris.util.jobs import schedule_at_idle
+from lutris.util.log import get_log_contents, logger
 from lutris.util.strings import gtk_safe
 
 
@@ -63,21 +65,15 @@ class Dialog(Gtk.Dialog):
         ModalDialog after run()."""
 
         def idle_destroy():
-            nonlocal idle_source_id
-            idle_source_id = None
             if not condition or condition():
                 self.destroy()
-            return False
 
         def on_destroy(*_args):
-            nonlocal idle_source_id
             self.disconnect(on_destroy_id)
-            if idle_source_id:
-                GLib.source_remove(idle_source_id)
-            idle_source_id = None
+            idle_destroy_task.unschedule()
 
         self.hide()
-        idle_source_id = GLib.idle_add(idle_destroy)
+        idle_destroy_task = schedule_at_idle(idle_destroy)
         on_destroy_id = self.connect("destroy", on_destroy)
 
     def add_styled_button(self, button_text: str, response_id: Gtk.ResponseType, css_class: str):
@@ -146,14 +142,13 @@ class ModelessDialog(Dialog):
         # and does not share modality with other windows - so it
         # needs its own window group.
         Gtk.WindowGroup().add_window(self)
-        GLib.idle_add(self._clear_transient_for)
+        schedule_at_idle(self._clear_transient_for)
 
-    def _clear_transient_for(self):
+    def _clear_transient_for(self) -> None:
         # we need the parent set to be centered over the parent, but
         # we don't want to be transient really - we want other windows
         # able to come to the front.
         self.set_transient_for(None)
-        return False
 
     def on_response(self, dialog, response: Gtk.ResponseType) -> None:
         super().on_response(dialog, response)
@@ -321,7 +316,7 @@ class ErrorDialog(Gtk.MessageDialog):
             content_area.pack_end(details_expander, False, False, 0)
 
             action_area = self.get_action_area()
-            copy_button = Gtk.Button(_("Copy to Clipboard"), visible=True)
+            copy_button = Gtk.Button(_("Copy Details to Clipboard"), visible=True)
             action_area.pack_start(copy_button, False, True, 0)
             action_area.set_child_secondary(copy_button, True)
             copy_button.connect("clicked", self.on_copy_clicked, error)
@@ -336,11 +331,25 @@ class ErrorDialog(Gtk.MessageDialog):
 
     def get_details_expander(self, error: BaseException) -> Gtk.Widget:
         details = self.format_error(error, include_message=False)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        label = Gtk.Label(xalign=0.0, wrap=True, margin_left=6, margin_right=6, margin_bottom=6)
+        label.set_markup(
+            _(
+                "You can get support from "
+                "<a href='https://github.com/lutris/lutris'>GitHub</a> or "
+                "<a href='https://discordapp.com/invite/Pnt5CuY'>Discord</a>. "
+                "Make sure to provide the error details;\n"
+                "use the 'Copy Details to Clipboard' button to get them."
+            )
+        )
+        box.pack_start(label, False, False, 0)
+
         expander = Gtk.Expander.new(_("Error details"))
 
         details_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-        details_box.pack_start(Gtk.Separator(margin_top=6), False, False, 0)
+        details_box.pack_start(Gtk.Separator(), False, False, 0)
 
         details_textview = Gtk.TextView(editable=False)
         details_textview.get_buffer().set_text(details)
@@ -349,15 +358,23 @@ class ErrorDialog(Gtk.MessageDialog):
         details_scrolledwindow.add(details_textview)
         details_box.pack_start(details_scrolledwindow, False, False, 0)
         expander.add(details_box)
-        expander.show_all()
-        return expander
+
+        box.pack_start(expander, True, True, 0)
+        box.show_all()
+        return box
 
     @staticmethod
     def format_error(error: BaseException, include_message: bool = True):
         formatted = traceback.format_exception(type(error), error, error.__traceback__)
         if include_message:
             formatted = [str(error), ""] + formatted
-        return "\n".join(formatted).strip()
+        text = "\n".join(formatted).strip()
+        log = get_log_contents()
+
+        if log:
+            text = f"{text}\n\nLutris log:\n{log}".strip()
+
+        return text
 
 
 class QuestionDialog(Gtk.MessageDialog):
@@ -573,7 +590,7 @@ class InstallerSourceDialog(ModelessDialog):
 
     def __init__(self, code, name, parent):
         super().__init__(title=_("Install script for {}").format(name), parent=parent, border_width=0)
-        self.set_size_request(500, 350)
+        self.set_default_size(800, 750)
 
         ok_button = self.add_default_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
         ok_button.set_border_width(10)
@@ -592,69 +609,6 @@ class InstallerSourceDialog(ModelessDialog):
         self.scrolled_window.add(source_box)
 
         self.show_all()
-
-
-class MoveDialog(ModelessDialog):
-    __gsignals__ = {
-        "game-moved": (GObject.SIGNAL_RUN_FIRST, None, ()),
-    }
-
-    def __init__(self, game, destination, parent=None):
-        super().__init__(parent=parent, border_width=24)
-
-        self.game = game
-        self.destination = destination
-        self.new_directory = None
-
-        self.set_size_request(320, 60)
-        self.set_decorated(False)
-        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 12)
-        label = Gtk.Label(_("Moving %s to %s..." % (game, destination)))
-        vbox.add(label)
-        self.progress = Gtk.ProgressBar(visible=True)
-        self.progress.set_pulse_step(0.1)
-        vbox.add(self.progress)
-        self.get_content_area().add(vbox)
-        self.progress_source_id = GLib.timeout_add(125, self.show_progress)
-        self.connect("destroy", self.on_destroy)
-        self.show_all()
-
-    def on_destroy(self, _dialog):
-        GLib.source_remove(self.progress_source_id)
-
-    def move(self):
-        AsyncCall(self._move_game, self._move_game_cb)
-
-    def show_progress(self):
-        self.progress.pulse()
-        return True
-
-    def _move_game(self):
-        # not safe fire a signal from a thread- it will surely hit GTK and may crash
-        self.new_directory = self.game.move(self.destination, no_signal=True)
-
-    def _move_game_cb(self, _result, error):
-        if error and isinstance(error, InvalidGameMoveError):
-            secondary = _(
-                "Do you want to change the game location anyway? No files can be moved, "
-                "and the game configuration may need to be adjusted."
-            )
-            dlg = WarningDialog(message_markup=error, secondary=secondary, parent=self)
-            if dlg.result == Gtk.ResponseType.OK:
-                self.new_directory = self.game.set_location(self.destination)
-                self.on_game_moved(None, None)
-            else:
-                self.destroy()
-            return
-
-        self.on_game_moved(_result, error)
-
-    def on_game_moved(self, _result, error):
-        if error:
-            ErrorDialog(error, parent=self)
-        self.game.emit("game-updated")  # because we could not fire this on the thread
-        self.emit("game-moved")
-        self.destroy()
 
 
 class HumbleBundleCookiesDialog(ModalDialog):
@@ -707,3 +661,51 @@ class HumbleBundleCookiesDialog(ModalDialog):
             self.cookies_content = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
         super().on_response(dialog, response)
+
+
+_error_handlers: Dict[Type[BaseException], Callable[[BaseException, Gtk.Window], Any]] = {}
+TError = TypeVar("TError", bound=BaseException)
+
+
+def display_error(error: BaseException, parent: Gtk.Window) -> None:
+    """Displays an error in a modal dialog. This can be customized via
+    register_error_handler(), but displays an ErrorDialog by default.
+
+    This allows custom error handling to be invoked anywhere that can show an
+    ErrorDialog, instead of having to bounce exceptions off the backstop."""
+    handler = get_error_handler(type(error))
+    handler(error, parent)
+
+
+def register_error_handler(error_class: Type[TError], handler: Callable[[TError, Gtk.Window], Any]) -> None:
+    """Records a function to call to handle errors of a particular class or its subclasses. The
+    function is given the error and a parent window, and can display a modal dialog."""
+    _error_handlers[error_class] = handler
+
+
+def get_error_handler(error_class: Type[TError]) -> Callable[[TError, Gtk.Window], Any]:
+    """Returns the register error handler for an exception class. If none is registered,
+    this returns a default handler that shows an ErrorDialog."""
+    if not isinstance(error_class, type):
+        if isinstance(error_class, BaseException):
+            logger.debug("An error was passed where an error class should be passed.")
+            error_class = type(error_class)
+        else:
+            raise ValueError(f"'{error_class}' was passed to get_error_handler, but an error class is required here.")
+
+    if error_class in _error_handlers:
+        return _error_handlers[error_class]
+
+    for base_class in inspect.getmro(error_class):
+        if base_class in _error_handlers:
+            return _error_handlers[base_class]
+
+    return lambda e, p: ErrorDialog(e, parent=p)
+
+
+def _handle_keyerror(error: KeyError, parent: Gtk.Window) -> None:
+    message = _("The key '%s' could not be found.") % error.args[0]
+    ErrorDialog(error, message_markup=gtk_safe(message), parent=parent)
+
+
+register_error_handler(KeyError, _handle_keyerror)

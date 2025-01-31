@@ -1,4 +1,5 @@
 """XDG shortcuts handling"""
+
 import os
 import shlex
 import shutil
@@ -60,15 +61,22 @@ def create_launcher(game_slug, game_id, game_name, launch_config_name=None, desk
 
     url = format_installer_url({"action": "rungameid", "game_slug": game_id, "launch_config_name": launch_config_name})
 
+    # Quote URL for the shell but *also* quote %, which indicates a desktop file
+    # field code in the Exec key.
+    command = f"{lutris_executable} {shlex.quote(url)}".replace("%", "%%")
+
+    try_exec = "" if LINUX_SYSTEM.is_flatpak() else "lutris"
+
     launcher_content = dedent(
         """
         [Desktop Entry]
         Type=Application
         Name={}
         Icon={}
-        Exec=env LUTRIS_SKIP_INIT=1 {} {}
+        Exec=env LUTRIS_SKIP_INIT=1 {}
         Categories=Game
-        """.format(game_name, "lutris_{}".format(game_slug), lutris_executable, shlex.quote(url))
+        TryExec={}
+        """.format(game_name, f"lutris_{game_slug}", command, try_exec)
     )
 
     launcher_filename = get_xdg_basename(game_slug, game_id)
@@ -78,7 +86,7 @@ def create_launcher(game_slug, game_id, game_name, launch_config_name=None, desk
         tmp_launcher.close()
     os.chmod(
         tmp_launcher_path,
-        stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP,
+        stat.S_IREAD | stat.S_IWRITE | stat.S_IRGRP | stat.S_IWGRP,
     )
 
     if desktop:

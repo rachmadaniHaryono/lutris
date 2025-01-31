@@ -1,4 +1,5 @@
 """Keep track of game executables' presence"""
+
 import json
 import os
 import time
@@ -18,7 +19,7 @@ def get_game_paths():
     game_paths = {}
     all_games = get_games(filters={"installed": 1})
     for db_game in all_games:
-        if db_game.runner in ("steam", "web"):
+        if db_game.get("runner") in ("steam", "web"):
             continue
         game = Game(db_game["id"])
         path = game.get_path_from_config()

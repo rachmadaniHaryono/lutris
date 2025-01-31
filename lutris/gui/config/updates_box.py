@@ -1,11 +1,15 @@
 import os
 from gettext import gettext as _
-from typing import Callable
+from typing import Callable, Tuple
 
 from gi.repository import Gio, Gtk
 
 from lutris import settings
-from lutris.api import get_default_wine_runner_version_info, get_runtime_versions_date_time_ago
+from lutris.api import (
+    format_runner_version,
+    get_default_wine_runner_version_info,
+    get_runtime_versions_date_time_ago,
+)
 from lutris.gui.config.base_config_box import BaseConfigBox
 from lutris.gui.dialogs import NoticeDialog
 from lutris.runtime import RuntimeUpdater
@@ -15,11 +19,13 @@ from lutris.util import system
 from lutris.util.jobs import AsyncCall
 from lutris.util.log import logger
 from lutris.util.strings import gtk_safe
+from lutris.util.wine.wine import WINE_DIR
+
+LUTRIS_EXPERIMENTAL_FEATURES_ENABLED = os.environ.get("LUTRIS_EXPERIMENTAL_FEATURES_ENABLED") == "1"
 
 
 class UpdatesBox(BaseConfigBox):
-    def __init__(self):
-        super().__init__()
+    def populate(self):
         self.add(self.get_section_label(_("Wine update channel")))
 
         update_channel_radio_buttons = self.get_update_channel_radio_buttons()
@@ -75,17 +81,23 @@ class UpdatesBox(BaseConfigBox):
         # Safer to connect these after the active property has been initialized on all radio buttons
         stable_channel_radio_button.connect("toggled", self.on_update_channel_toggled, UPDATE_CHANNEL_STABLE)
         unsupported_channel_radio_button.connect("toggled", self.on_update_channel_toggled, UPDATE_CHANNEL_UNSUPPORTED)
-        return (stable_channel_radio_button, unsupported_channel_radio_button)
 
-    def get_wine_update_texts(self):
+        return stable_channel_radio_button, unsupported_channel_radio_button
+
+    def get_wine_update_texts(self) -> Tuple[str, str]:
         wine_version_info = get_default_wine_runner_version_info()
-        wine_version = f"{wine_version_info['version']}-{wine_version_info['architecture']}"
-        if system.path_exists(os.path.join(settings.RUNNER_DIR, "wine", wine_version)):
-            update_label_text = _("Your wine version is up to date. Using: <b>%s</b>\n" "<i>Last checked %s.</i>") % (
+        if not wine_version_info:
+            update_label_text = _("No compatible Wine version could be identified. No updates are available.")
+            update_button_text = _("Check Again")
+            return update_label_text, update_button_text
+
+        wine_version = format_runner_version(wine_version_info)
+        if wine_version and system.path_exists(os.path.join(settings.RUNNER_DIR, "wine", wine_version)):
+            update_label_text = _("Your Wine version is up to date. Using: <b>%s</b>\n" "<i>Last checked %s.</i>") % (
                 wine_version_info["version"],
                 get_runtime_versions_date_time_ago(),
             )
-            update_button_text = _("Check again")
+            update_button_text = _("Check Again")
         elif not system.path_exists(os.path.join(settings.RUNNER_DIR, "wine")):
             update_label_text = (
                 _("You don't have any Wine version installed.\n" "We recommend <b>%s</b>")
@@ -158,8 +170,13 @@ class UpdatesBox(BaseConfigBox):
         window = self._get_main_window()
         if not window:
             return
-        updater = RuntimeUpdater()
-        updater.update_runners = True
+
+        # Create runner dir if missing, to enable installing runner updates at all.
+        if not system.path_exists(WINE_DIR):
+            os.mkdir(WINE_DIR)
+
+        updater = RuntimeUpdater(force=True)
+        updater.update_runtime = False
         component_updaters = updater.create_component_updaters()
         if component_updaters:
 
@@ -182,8 +199,8 @@ class UpdatesBox(BaseConfigBox):
 
     def on_runtime_update_clicked(self, _widget):
         def get_updater():
-            updater = RuntimeUpdater()
-            updater.update_runtime = True
+            updater = RuntimeUpdater(force=True)
+            updater.update_runners = False
             return updater
 
         self._trigger_updates(get_updater, self.update_runtime_box)
@@ -198,12 +215,12 @@ class UpdatesBox(BaseConfigBox):
         if component_updaters:
 
             def on_complete(_result):
-                if len(component_updaters) == 1:
-                    update_box.show_completion_markup("", _("1 component has been updated."))
+                # the 'icons' updater always shows as updated even when it's not
+                component_names = [updater.name for updater in component_updaters if updater.name != "icons"]
+                if len(component_names) == 1:
+                    update_box.show_completion_markup("", _("%s has been updated.") % component_names[0])
                 else:
-                    update_box.show_completion_markup(
-                        "", _("%d components have been updated.") % len(component_updaters)
-                    )
+                    update_box.show_completion_markup("", _("%s have been updated.") % ", ".join(component_names))
 
             started = window.install_runtime_component_updates(
                 component_updaters, updater, completion_function=on_complete, error_function=update_box.show_error
@@ -221,7 +238,7 @@ class UpdatesBox(BaseConfigBox):
         if not checkbox.get_active():
             return
         last_setting = settings.read_setting("wine-update-channel", UPDATE_CHANNEL_STABLE)
-        if last_setting == UPDATE_CHANNEL_STABLE and value == UPDATE_CHANNEL_UNSUPPORTED:
+        if last_setting != UPDATE_CHANNEL_UNSUPPORTED and value == UPDATE_CHANNEL_UNSUPPORTED:
             NoticeDialog(
                 _("Without the Wine-GE updates enabled, we can no longer provide support on Github and Discord."),
                 parent=self.get_toplevel(),
@@ -246,7 +263,7 @@ class UpdateButtonBox(Gtk.Box):
 
         self.spinner = Gtk.Spinner()
         self.pack_end(self.spinner, False, False, 0)
-        self.result_label = Gtk.Label()
+        self.result_label = Gtk.Label(wrap=True)
         self.pack_end(self.result_label, False, False, 0)
 
     def show_running_markup(self, markup: str) -> None:

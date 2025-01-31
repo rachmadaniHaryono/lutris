@@ -1,4 +1,5 @@
 """Module for handling the Amazon service"""
+
 import base64
 import hashlib
 import json
@@ -7,9 +8,11 @@ import os
 import secrets
 import struct
 import time
+import urllib
 import uuid
 from collections import defaultdict
 from gettext import gettext as _
+from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import yaml
@@ -19,7 +22,7 @@ from lutris.exceptions import AuthenticationError, UnavailableGameError
 from lutris.installer import AUTO_WIN32_EXE
 from lutris.installer.installer_file import InstallerFile
 from lutris.installer.installer_file_collection import InstallerFileCollection
-from lutris.services.base import OnlineService
+from lutris.services.base import SERVICE_LOGIN, OnlineService
 from lutris.services.service_game import ServiceGame
 from lutris.services.service_media import ServiceMedia
 from lutris.util import system
@@ -39,7 +42,7 @@ class AmazonBanner(ServiceMedia):
     api_field = "image"
     url_pattern = "%s"
 
-    def get_media_url(self, details):
+    def get_media_url(self, details: Dict[str, Any]) -> Optional[str]:
         return details["product"]["productDetail"]["details"]["logoUrl"]
 
 
@@ -63,7 +66,7 @@ class AmazonService(OnlineService):
     """Service class for Amazon"""
 
     id = "amazon"
-    name = _("Amazon Prime Gaming")
+    name = _("Amazon")
     icon = "amazon"
     runner = "wine"
     has_extras = False
@@ -75,11 +78,13 @@ class AmazonService(OnlineService):
     login_window_height = 710
 
     marketplace_id = "ATVPDKIKX0DER"
-    user_agent = "com.amazon.agslauncher.win/2.1.7437.6"
+    user_agent = "com.amazon.agslauncher.win/3.0.9202.1"
 
     amazon_api = "https://api.amazon.com"
     amazon_sds = "https://sds.amazon.com"
     amazon_gaming_graphql = "https://gaming.amazon.com/graphql"
+    amazon_gaming_distribution = "https://gaming.amazon.com/api/distribution/v2/public"
+    amazon_gaming_entitlements = "https://gaming.amazon.com/api/distribution/entitlements"
 
     client_id = None
     serial = None
@@ -142,7 +147,7 @@ class AmazonService(OnlineService):
 
             self.save_user_data(user_data)
 
-            self.emit("service-login")
+            SERVICE_LOGIN.fire(self)
 
     def is_connected(self):
         """Return whether the user is authenticated and if the service is available"""
@@ -235,7 +240,7 @@ class AmazonService(OnlineService):
         try:
             request.post(json.dumps(data).encode())
         except HTTPError as ex:
-            logger.error("Failed http request %s", url)
+            logger.exception("Failed http request %s: %s", url, ex)
             raise AuthenticationError(_("Unable to register device, please log in again")) from ex
 
         res_json = request.json
@@ -284,7 +289,7 @@ class AmazonService(OnlineService):
         try:
             request.post(json.dumps(request_data).encode())
         except HTTPError as ex:
-            logger.error("Failed http request %s", url)
+            logger.exception("Failed http request %s: %s", url, ex)
             raise AuthenticationError(_("Unable to refresh token, please log in again")) from ex
 
         res_json = request.json
@@ -325,9 +330,9 @@ class AmazonService(OnlineService):
 
         try:
             request.get()
-        except HTTPError:
+        except HTTPError as ex:
             # Do not raise exception here, should be managed from the caller
-            logger.error("Failed http request %s", url)
+            logger.exception("Failed http request %s: %s", url, ex)
             return False
 
         return True
@@ -345,50 +350,64 @@ class AmazonService(OnlineService):
         serial = user_data["extensions"]["device_info"]["device_serial_number"]
 
         games_by_asin = defaultdict(list)
-        nextToken = None
+        next_token = None
         while True:
-            request_data = self.get_sync_request_data(serial, nextToken)
+            request_data = self.get_sync_request_data(serial, next_token)
 
-            json_data = self.request_sds(
-                "com.amazonaws.gearbox."
-                "softwaredistribution.service.model."
-                "SoftwareDistributionService.GetEntitlementsV2",
+            json_data = self.request_entitlements(
+                "com.amazon.animusdistributionservice.entitlement.AnimusEntitlementsService.GetEntitlements",
                 access_token,
                 request_data,
             )
 
-            if not json_data:
-                return
-
             for game_json in json_data["entitlements"]:
                 product = game_json["product"]
 
-                asin = product["asin"]
+                if "id" not in product:
+                    logger.error("Amazon game encountered with no ID; skipping: %s", game_json)
+                    continue
+
+                # Some games have no ASIN; we'll have to skip dedupping these by ASIN.
+                asin = product.get("asin") or ""
                 games_by_asin[asin].append(game_json)
 
             if "nextToken" not in json_data:
                 break
 
             logger.info("Got next token in response, making next request")
-            nextToken = json_data["nextToken"]
+            next_token = json_data["nextToken"]
 
-        # If Amazon gives is the same game with different ids we'll pick the
-        # least ID. Probably we should just use ASIN as the ID, but since we didn't
-        # do this in the first release of the Amazon integration, we'll maintain compatibility
-        # by using the top level ID whenever we can.
-        games = [sorted(gl, key=lambda g: g["id"])[0] for gl in games_by_asin.values()]
+        # We need to use the ID for compatibility with earlier Lutris releases, but also
+        # some games do not have ASINs. We still deduplicate by ASIN when we can, since the same
+        # game can have two different IDs.
+
+        asinless = games_by_asin.pop("", [])
+        dedupped = [sorted(gl, key=lambda g: g["id"])[0] for gl in games_by_asin.values()]
+        games = asinless + dedupped
 
         with open(self.cache_path, "w", encoding="utf-8") as amazon_cache:
             json.dump(games, amazon_cache)
 
         return games
 
-    def get_sync_request_data(self, serial, nextToken=None):
+    def request_distribution(self, target, token, body):
+        headers = {
+            "X-Amz-Target": target,
+            "x-amzn-token": token,
+            "UserAgent": "com.amazon.agslauncher.win/3.0.9202.1",
+            "Content-Type": "application/json",
+            "Content-Encoding": "amz-1.0",
+        }
+        request = Request(self.amazon_gaming_distribution, headers=headers)
+        request.post(json.dumps(body).encode())
+        return request.json
+
+    def get_sync_request_data(self, serial, next_token=None, sync_point=None):
         request_data = {
-            "Operation": "GetEntitlementsV2",
+            "Operation": "GetEntitlements",
             "clientId": "Sonic",
-            "syncPoint": None,
-            "nextToken": nextToken,
+            "syncPoint": sync_point,
+            "nextToken": next_token,
             "maxResults": 50,
             "productIdFilter": None,
             "keyId": "d5dc8b8b-86c8-4fc4-ae93-18c0def5314d",
@@ -408,14 +427,21 @@ class AmazonService(OnlineService):
 
         url = f"{self.amazon_sds}/amazon/"
         request = Request(url, headers=headers)
+        request.post(json.dumps(body).encode())
+        return request.json
 
-        try:
-            request.post(json.dumps(body).encode())
-        except HTTPError as ex:
-            # Do not raise exception here, should be managed from the caller
-            logger.error("Failed http request %s: %s", url, ex)
-            return
+    def request_entitlements(self, target, token, body):
+        headers = {
+            "X-Amz-Target": target,
+            "x-amzn-token": token,
+            "User-Agent": self.user_agent,
+            "Content-Type": "application/json",
+            "Content-Encoding": "amz-1.0",
+        }
 
+        url = f"{self.amazon_gaming_entitlements}"
+        request = Request(url, headers=headers)
+        request.post(json.dumps(body).encode())
         return request.json
 
     def get_game_manifest_info(self, game_id):
@@ -423,23 +449,20 @@ class AmazonService(OnlineService):
         access_token = self.get_access_token()
 
         request_data = {
-            "adgGoodId": game_id,
-            "previousVersionId": None,
-            "keyId": "d5dc8b8b-86c8-4fc4-ae93-18c0def5314d",
-            "Operation": "GetDownloadManifestV3",
+            "entitlementId": game_id,
+            "Operation": "GetGameDownload",
         }
 
-        response = self.request_sds(
-            "com.amazonaws.gearbox."
-            "softwaredistribution.service.model."
-            "SoftwareDistributionService.GetDownloadManifestV3",
-            access_token,
-            request_data,
-        )
-
-        if not response:
-            logger.error("There was an error getting game manifest: %s", game_id)
-            raise UnavailableGameError(_("Unable to get game manifest info"))
+        try:
+            response = self.request_distribution(
+                "com.amazon.animusdistributionservice.external.AnimusDistributionService.GetGameDownload",
+                access_token,
+                request_data,
+            )
+        except HTTPError as ex:
+            # Do not raise exception here, should be managed from the caller
+            logger.exception("There was an error getting game '%s' manifest: %s", game_id, ex)
+            raise UnavailableGameError(_("Unable to get game manifest info")) from ex
 
         return response
 
@@ -449,13 +472,17 @@ class AmazonService(OnlineService):
             "User-Agent": self.user_agent,
         }
 
-        url = manifest_info["downloadUrls"][0]
+        url = manifest_info["downloadUrl"]
+        url = urllib.parse.urlparse(url)
+        url = url._replace(path=url.path + "/manifest.proto")
+        url = urllib.parse.urlunparse(url)
+
         request = Request(url, headers=headers)
 
         try:
             request.get()
         except HTTPError as ex:
-            logger.error("Failed http request %s", url)
+            logger.exception("Failed http request %s: %s", url, ex)
             raise UnavailableGameError(_("Unable to get game manifest")) from ex
 
         content = request.content
@@ -487,16 +514,16 @@ class AmazonService(OnlineService):
             "adgGoodId": game_id,
         }
 
-        response = self.request_sds(
-            "com.amazonaws.gearbox." "softwaredistribution.service.model." "SoftwareDistributionService.GetPatches",
-            access_token,
-            request_data,
-        )
-
-        if not response:
-            logger.error("There was an error getting patches: %s", game_id)
-            raise UnavailableGameError(_("Unable to get the patches of game"), game_id)
-        return response
+        try:
+            return self.request_sds(
+                "com.amazonaws.gearbox." "softwaredistribution.service.model." "SoftwareDistributionService.GetPatches",
+                access_token,
+                request_data,
+            )
+        except HTTPError as ex:
+            # Do not raise exception here, should be managed from the caller
+            logger.exception("There was an error getting '%s' patches: %s", game_id, ex)
+            raise UnavailableGameError(_("Unable to get the patches of game '%s'") % game_id) from ex
 
     def get_game_patches(self, game_id, version, file_list):
         """Get game files"""
@@ -552,9 +579,12 @@ class AmazonService(OnlineService):
 
         file_dict, directories, hashpairs = self.structure_manifest_data(manifest)
 
-        game_patches = self.get_game_patches(game_id, manifest_info["versionId"], hashpairs)
-        for patch in game_patches:
-            file_dict[patch["patchHash"]["value"]]["url"] = patch["downloadUrls"][0]
+        for file_hash, file in file_dict.items():
+            url = manifest_info["downloadUrl"]
+            url = urllib.parse.urlparse(url)
+            url = url._replace(path=url.path + "/files/" + file_hash)
+            url = urllib.parse.urlunparse(url)
+            file["url"] = url
 
         return file_dict, directories
 
@@ -569,7 +599,7 @@ class AmazonService(OnlineService):
         try:
             request.get()
         except HTTPError as ex:
-            logger.error("Failed http request %s", fuel_url)
+            logger.error("Failed http request %s: %s", fuel_url, ex)
             raise UnavailableGameError(_("Unable to get fuel.json file.")) from ex
 
         try:
@@ -578,7 +608,7 @@ class AmazonService(OnlineService):
         except Exception as ex:
             # Maybe it can be parsed as plain JSON. May as well try it.
             try:
-                logger.exception("Unparesable yaml response from %s:\n%s", fuel_url, res_yaml_text)
+                logger.exception("Unparseable yaml response from %s: %s\n%s", fuel_url, ex, res_yaml_text)
                 res_json = json.loads(res_yaml_text)
             except Exception:
                 raise UnavailableGameError(_("Invalid response from Amazon APIs")) from ex
@@ -650,15 +680,13 @@ class AmazonService(OnlineService):
         ]
 
         # try to get fuel file that contain the main exe
-        fuel_file = {k: v for k, v in file_dict.items() if "fuel.json" in v["path"]}
-        hashpair = [hashpair for hashpair in hashpairs if hashpair["targetHash"]["value"] == list(fuel_file.keys())[0]]
+        fuel_file = [k for k, v in file_dict.items() if "fuel.json" in v["path"]]
         fuel_url = None
         if fuel_file:
-            version = manifest_info["versionId"]
-            access_token = self.get_access_token()
-            response = self.get_file_patch(access_token, game_id, version, hashpair)
-            patch = response["patches"][0]
-            fuel_url = patch["downloadUrls"][0]
+            fuel_url = manifest_info["downloadUrl"]
+            fuel_url = urllib.parse.urlparse(fuel_url)
+            fuel_url = fuel_url._replace(path=fuel_url.path + "/files/" + list(fuel_file)[0])
+            fuel_url = urllib.parse.urlunparse(fuel_url)
 
         game_cmd, game_args = self.get_game_cmd_line(fuel_url)
         logger.info("game cmd line: %s %s", game_cmd, game_args)

@@ -1,4 +1,5 @@
 """Misc widgets used in the GUI."""
+
 # Standard Library
 import os
 import shlex
@@ -101,7 +102,11 @@ class FileChooserEntry(Gtk.Box):
 
     def set_text(self, text):
         if self.shell_quoting and text:
-            command_array = shlex.split(text)
+            try:
+                command_array = shlex.split(self.get_text())
+            except ValueError:
+                command_array = None  # split can fail due to imbalanced quoted
+
             if command_array:
                 expanded = os.path.expanduser(command_array[0])
                 command_array[0] = expanded
@@ -116,7 +121,11 @@ class FileChooserEntry(Gtk.Box):
 
     def set_path(self, path):
         if self.shell_quoting:
-            command_array = shlex.split(self.get_text())
+            try:
+                command_array = shlex.split(self.get_text())
+            except ValueError:
+                command_array = None  # split can fail due to imbalanced quoted
+
             if command_array:
                 command_array[0] = os.path.expanduser(path) if path else ""
                 rejoined = shlex.join(command_array)
@@ -138,8 +147,11 @@ class FileChooserEntry(Gtk.Box):
         the command from the text and returns only that."""
         text = self.get_text()
         if self.shell_quoting:
-            command_array = shlex.split(text)
-            return command_array[0] if command_array else ""
+            try:
+                command_array = shlex.split(text)
+                return command_array[0] if command_array else ""
+            except ValueError:
+                pass
 
         return text
 
@@ -177,8 +189,11 @@ class FileChooserEntry(Gtk.Box):
             target_path = file_chooser_dialog.get_filename()
 
             if target_path and self.shell_quoting:
-                command_array = shlex.split(self.entry.get_text())
-                text = shlex.join([target_path] + command_array[1:])
+                try:
+                    command_array = shlex.split(self.entry.get_text())
+                    text = shlex.join([target_path] + command_array[1:])
+                except ValueError:
+                    text = shlex.join([target_path])
             else:
                 text = target_path
 
@@ -319,11 +334,11 @@ class FileChooserEntry(Gtk.Box):
 class Label(Gtk.Label):
     """Standardised label for config vboxes."""
 
-    def __init__(self, message=None, width_request=230):
+    def __init__(self, message=None, width_request=230, max_width_chars=22, visible=True):
         """Custom init of label."""
-        super().__init__(label=message, visible=True)
+        super().__init__(label=message, visible=visible)
         self.set_line_wrap(True)
-        self.set_max_width_chars(22)
+        self.set_max_width_chars(max_width_chars)
         self.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
         self.set_size_request(width_request, -1)
         self.set_alignment(0, 0.5)
@@ -391,8 +406,9 @@ class EditableGrid(Gtk.Box):
     def on_delete(self, widget):  # pylint: disable=unused-argument
         selection = self.treeview.get_selection()
         _, iteration = selection.get_selected()
-        self.liststore.remove(iteration)
-        self.emit("changed")
+        if iteration:
+            self.liststore.remove(iteration)
+            self.emit("changed")
 
     def on_text_edited(self, widget, path, text, field):  # pylint: disable=unused-argument
         self.liststore[path][field] = text.strip()  # pylint: disable=unsubscriptable-object

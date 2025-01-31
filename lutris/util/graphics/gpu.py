@@ -2,7 +2,8 @@ import glob
 import os
 import re
 import shutil
-from typing import Dict
+import subprocess
+from typing import Dict, Optional
 
 from lutris.util import system
 from lutris.util.graphics import drivers
@@ -70,12 +71,16 @@ class GPU:
         self.card = card
         self.gpu_info = self.get_gpu_info()
         self.driver = self.gpu_info["DRIVER"]
-        self.pci_id = self.gpu_info["PCI_ID"]
-        self.pci_subsys_id = self.gpu_info["PCI_SUBSYS_ID"]
+        self.pci_id = self.gpu_info["PCI_ID"].lower()
+        self.pci_subsys_id = self.gpu_info["PCI_SUBSYS_ID"].lower()
         self.pci_slot = self.gpu_info["PCI_SLOT_NAME"]
         self.icd_files = self.get_icd_files()
         if VULKANINFO_AVAILABLE:
-            self.name = self.get_vulkaninfo_name()
+            try:
+                self.name = self.get_vulkaninfo_name() or self.get_lspci_name()
+            except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                # already logged this, so we'll just fall back to lspci.
+                self.name = self.get_lspci_name()
         else:
             self.name = self.get_lspci_name()
 
@@ -112,28 +117,51 @@ class GPU:
             infos[key] = value.strip()
         return infos
 
-    def get_vulkaninfo_name(self):
+    def get_vulkaninfo(self) -> Dict[str, Dict[str, str]]:
         """Runs vulkaninfo to find the GPU name"""
         subprocess_env = dict(os.environ)
         subprocess_env["VK_DRIVER_FILES"] = self.icd_files  # Currently supported
         subprocess_env["VK_ICD_FILENAMES"] = self.icd_files  # Deprecated
-        vulkaninfo_output = system.read_process_output("vulkaninfo", env=subprocess_env).split("\n")
-        result = ""
+        vulkaninfo_output = system.read_process_output(
+            ["vulkaninfo", "--summary"], env=subprocess_env, error_result=None
+        ).split("\n")
+        result = {}
+        devices_seen = False
         for line in vulkaninfo_output:
-            if "deviceName" not in line:
+            line = line.strip()
+            if not line or line.startswith("==="):
                 continue
-            result = line.split("= ", maxsplit=1)[1].strip()
+            if line == "Devices:":
+                devices_seen = True
+                continue
+            if not devices_seen:
+                continue
+            if line.startswith("GPU"):
+                current_gpu = line
+                result[current_gpu] = {}
+            else:
+                key, value = line.split("= ", maxsplit=1)
+                result[current_gpu][key.strip()] = value.strip()
         if "Failed to detect any valid GPUs" in result or "ERROR: [Loader Message]" in result:
-            return "No GPU"
+            logger.warning("Vulkan failed to detect any GPUs: %s", result)
+            return {}
         return result
 
+    def get_vulkaninfo_name(self) -> Optional[str]:
+        vulkaninfo = self.get_vulkaninfo()
+        for gpu_index in vulkaninfo:
+            pci_id = "%s:%s" % (
+                vulkaninfo[gpu_index]["vendorID"].replace("0x", ""),
+                vulkaninfo[gpu_index]["deviceID"].replace("0x", ""),
+            )
+            if pci_id == self.pci_id:
+                return vulkaninfo[gpu_index]["deviceName"]
+        return None
+
     def get_lspci_name(self):
-        devices = [
-            (pci_id, device_desc.split(": ")[1])
-            for pci_id, device_desc in [
-                line.split(maxsplit=1) for line in system.execute(["lspci"], timeout=3).split("\n")
-            ]
-        ]
+        lspci_results = [line.split(maxsplit=1) for line in system.execute(["lspci"], timeout=3).split("\n")]
+        lspci_results = [parts for parts in lspci_results if len(parts) == 2 and ": " in parts[1]]
+        devices = [(pci_id, device_desc.split(": ")[1]) for pci_id, device_desc in lspci_results]
         for device in devices:
             if f"0000:{device[0]}" == self.pci_slot:
                 return device[1]

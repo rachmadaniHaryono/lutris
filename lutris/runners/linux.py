@@ -1,4 +1,5 @@
 """Runner for Linux games"""
+
 # Standard Library
 import os
 import stat
@@ -6,7 +7,7 @@ from gettext import gettext as _
 from typing import Callable
 
 # Lutris Modules
-from lutris.exceptions import GameConfigError, MissingExecutableError, MissingGameExecutableError
+from lutris.exceptions import GameConfigError, MissingGameExecutableError
 from lutris.runners.runner import Runner
 from lutris.util import system
 from lutris.util.strings import split_arguments
@@ -34,7 +35,7 @@ class linux(Runner):
         },
         {
             "option": "working_dir",
-            "type": "directory_chooser",
+            "type": "directory",
             "label": _("Working directory"),
             "help": _(
                 "The location where the game is run from.\n"
@@ -51,7 +52,7 @@ class linux(Runner):
         },
         {
             "option": "ld_library_path",
-            "type": "directory_chooser",
+            "type": "directory",
             "label": _("Add directory to LD_LIBRARY_PATH"),
             "advanced": True,
             "help": _(
@@ -79,10 +80,7 @@ class linux(Runner):
             return exe
         if self.game_path:
             return os.path.join(self.game_path, exe)
-        try:
-            return system.find_executable(exe)
-        except MissingExecutableError:
-            return None
+        return system.find_executable(exe)
 
     def resolve_game_path(self):
         return super().resolve_game_path() or os.path.dirname(self.game_exe or "")

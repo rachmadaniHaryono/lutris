@@ -1,11 +1,12 @@
 """Options list for system config."""
+
 import os
 from collections import OrderedDict
 from gettext import gettext as _
 
 from lutris import runners
 from lutris.util import linux, system
-from lutris.util.display import DISPLAY_MANAGER, SCREEN_SAVER_INHIBITOR, is_compositing_enabled
+from lutris.util.display import DISPLAY_MANAGER, SCREEN_SAVER_INHIBITOR, is_compositing_enabled, is_display_x11
 from lutris.util.graphics.gpu import GPUS
 
 
@@ -78,7 +79,7 @@ system_options = [  # pylint: disable=invalid-name
     {
         "section": _("Lutris"),
         "option": "game_path",
-        "type": "directory_chooser",
+        "type": "directory",
         "label": _("Default installation folder"),
         "warn_if_non_writable_parent": True,
         "default": os.path.expanduser("~/Games"),
@@ -130,6 +131,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "bool",
         "label": _("Restore resolution on game exit"),
         "default": False,
+        "available": is_display_x11,
         "advanced": True,
         "help": _(
             "Some games don't restore your screen resolution when \n"
@@ -144,6 +146,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "bool",
         "default": False,
         "advanced": True,
+        "available": is_display_x11,
         "condition": is_compositing_enabled(),
         "help": _("Disable desktop effects while game is running, " "reducing stuttering and increasing performance"),
     },
@@ -168,6 +171,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("SDL 1.2 Fullscreen Monitor"),
         "choices": get_output_list,
         "default": "off",
+        "available": is_display_x11,
         "advanced": True,
         "help": _(
             "Hint SDL 1.2 games to use a specific monitor when going "
@@ -182,6 +186,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("Turn off monitors except"),
         "choices": get_output_choices,
         "default": "off",
+        "available": is_display_x11,
         "advanced": True,
         "help": _(
             "Only keep the selected screen active while the game is "
@@ -196,6 +201,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "choice",
         "label": _("Switch resolution to"),
         "advanced": True,
+        "available": is_display_x11,
         "choices": get_resolution_choices,
         "default": "off",
         "help": _("Switch to this screen resolution while the game is running."),
@@ -211,11 +217,23 @@ system_options = [  # pylint: disable=invalid-name
     },
     {
         "section": _("Gamescope"),
+        "option": "gamescope_hdr",
+        "type": "bool",
+        "label": _("Enable HDR (Experimental)"),
+        "advanced": False,
+        "default": False,
+        "conditional_on": "gamescope",
+        "condition": bool(system.can_find_executable("gamescope")),
+        "help": _("Enable HDR for games that support it.\n" "Requires Plasma 6 and VK_hdr_layer."),
+    },
+    {
+        "section": _("Gamescope"),
         "option": "gamescope_force_grab_cursor",
         "type": "bool",
         "label": _("Relative Mouse Mode"),
         "advanced": True,
         "default": False,
+        "conditional_on": "gamescope",
         "condition": bool(system.can_find_executable("gamescope")),
         "help": _(
             "Always use relative mouse mode instead of flipping\n"
@@ -230,6 +248,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("Output Resolution"),
         "choices": DISPLAY_MANAGER.get_resolutions,
         "advanced": True,
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _(
             "Set the resolution used by gamescope.\n"
@@ -244,6 +263,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "choice_with_entry",
         "label": _("Game Resolution"),
         "choices": DISPLAY_MANAGER.get_resolutions,
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _("Set the maximum resolution used by the game.\n" "\n" "<b>Custom Resolutions:</b> (width)x(height)"),
     },
@@ -258,6 +278,7 @@ system_options = [  # pylint: disable=invalid-name
             (_("Borderless"), "-b"),
         ),
         "default": "-f",
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _("Run gamescope in fullscreen, windowed or borderless mode\n" "Toggle fullscreen : Super + F"),
     },
@@ -267,6 +288,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("FSR Level"),
         "advanced": True,
         "type": "string",
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _(
             "Use AMD FidelityFX™ Super Resolution 1.0 for upscaling.\n" "Upscaler sharpness from 0 (max) to 20 (min)."
@@ -275,9 +297,10 @@ system_options = [  # pylint: disable=invalid-name
     {
         "section": _("Gamescope"),
         "option": "gamescope_fps_limiter",
-        "label": _("FPS Limiter"),
-        "advanced": True,
+        "label": _("Framerate Limiter"),
+        "advanced": False,
         "type": "string",
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _("Set a frame-rate limit for gamescope specified in frames per second."),
     },
@@ -287,6 +310,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("Custom Settings"),
         "advanced": True,
         "type": "string",
+        "conditional_on": "gamescope",
         "condition": system.can_find_executable("gamescope"),
         "help": _(
             "Set additional flags for gamescope (if available).\n" "See 'gamescope --help' for a full list of options."
@@ -306,6 +330,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "string",
         "label": _("Restrict number of cores to"),
         "default": "1",
+        "conditional_on": "single_cpu",
         "help": _("Maximum number of CPU cores to be used, if 'Restrict number of cores used' is turned on."),
     },
     {
@@ -333,6 +358,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "bool",
         "label": _("Switch to US keyboard layout"),
         "default": False,
+        "available": is_display_x11,
         "advanced": True,
         "help": _("Switch to US keyboard QWERTY layout while game is running"),
     },
@@ -429,6 +455,7 @@ system_options = [  # pylint: disable=invalid-name
         "label": _("Wait for pre-launch script completion"),
         "advanced": True,
         "default": False,
+        "conditional_on": "prelaunch_command",
         "help": _("Run the game only once the pre-launch script has exited"),
     },
     {
@@ -490,6 +517,7 @@ system_options = [  # pylint: disable=invalid-name
             (_("24BPP (16M colors)"), "24bpp"),
         ),
         "default": "off",
+        "available": is_display_x11,
         "advanced": True,
         "help": _("Run program in Xephyr to support 8BPP and 16BPP color modes"),
     },
@@ -498,6 +526,7 @@ system_options = [  # pylint: disable=invalid-name
         "option": "xephyr_resolution",
         "type": "string",
         "label": _("Xephyr resolution"),
+        "available": is_display_x11,
         "advanced": True,
         "help": _("Screen resolution of the Xephyr server"),
     },
@@ -507,6 +536,7 @@ system_options = [  # pylint: disable=invalid-name
         "type": "bool",
         "label": _("Xephyr Fullscreen"),
         "default": True,
+        "available": is_display_x11,
         "advanced": True,
         "help": _("Open Xephyr in fullscreen (at the desktop resolution)"),
     },

@@ -1,6 +1,8 @@
+import bisect
 import os
 import threading
 import time
+from typing import Any
 
 import requests
 
@@ -16,7 +18,6 @@ get_time = time.monotonic
 
 
 class Downloader:
-
     """Non-blocking downloader.
 
     Do start() then check_progress() at regular intervals.
@@ -26,7 +27,7 @@ class Downloader:
 
     (INIT, DOWNLOADING, CANCELLED, ERROR, COMPLETED) = list(range(5))
 
-    def __init__(self, url: str, dest: str, overwrite: bool = False, referer=None, cookies=None) -> None:
+    def __init__(self, url: str, dest: str, overwrite: bool = False, referer: str = None, cookies: Any = None) -> None:
         self.url: str = url
         self.dest: str = dest
         self.cookies = cookies
@@ -42,7 +43,6 @@ class Downloader:
         self.full_size: int = 0  # Bytes
         self.progress_fraction: float = 0
         self.progress_percentage: float = 0
-        self.speed = 0
         self.average_speed = 0
         self.time_left: str = "00:00:00"  # Based on average speed
         self.last_size: int = 0
@@ -75,7 +75,6 @@ class Downloader:
         self.full_size = 0  # Bytes
         self.progress_fraction = 0
         self.progress_percentage = 0
-        self.speed = 0
         self.average_speed = 0
         self.time_left = "00:00:00"  # Based on average speed
         self.last_size = 0
@@ -138,7 +137,7 @@ class Downloader:
             response.raise_for_status()
             self.full_size = int(response.headers.get("Content-Length", "").strip() or 0)
             self.progress_event.set()
-            for chunk in response.iter_content(chunk_size=1024):
+            for chunk in response.iter_content(chunk_size=8192):
                 if not self.file_pointer:
                     break
                 if chunk:
@@ -177,7 +176,7 @@ class Downloader:
 
     def get_stats(self):
         """Calculate and store download stats."""
-        self.speed, self.average_speed = self.get_speed()
+        self.average_speed = self.get_speed()
         self.time_left = self.get_average_time_left()
         self.last_check_time = get_time()
         self.last_size = self.downloaded_size
@@ -187,21 +186,27 @@ class Downloader:
             self.progress_percentage = self.progress_fraction * 100
 
     def get_speed(self):
-        """Return (speed, average speed) tuple."""
+        """Return the average speed of the download so far."""
         elapsed_time = get_time() - self.last_check_time
-        chunk_size = self.downloaded_size - self.last_size
-        speed = chunk_size / elapsed_time or 1
-        self.last_speeds.append(speed)
+        if elapsed_time > 0:
+            chunk_size = self.downloaded_size - self.last_size
+            speed = chunk_size / elapsed_time or 1
+            # insert in sorted order, so we can omit the least and
+            # greatest value later
+            bisect.insort(self.last_speeds, speed)
 
-        # Average speed
+        # Until we get the first sample, just return our default
+        if not self.last_speeds:
+            return self.average_speed
+
         if get_time() - self.speed_check_time < 1:  # Minimum delay
-            return self.speed, self.average_speed
+            return self.average_speed
 
         while len(self.last_speeds) > 20:
             self.last_speeds.pop(0)
 
         if len(self.last_speeds) > 7:
-            # Skim extreme values
+            # Skip extreme values
             samples = self.last_speeds[1:-1]
         else:
             samples = self.last_speeds[:]
@@ -209,7 +214,7 @@ class Downloader:
         average_speed = sum(samples) / len(samples)
 
         self.speed_check_time = get_time()
-        return speed, average_speed
+        return average_speed
 
     def get_average_time_left(self) -> str:
         """Return average download time left as string."""

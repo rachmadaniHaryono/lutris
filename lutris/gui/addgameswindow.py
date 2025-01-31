@@ -1,7 +1,7 @@
 import os
 from gettext import gettext as _
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Gio, Gtk
 
 from lutris import api, sysoptions
 from lutris.gui.config.add_game_dialog import AddGameDialog
@@ -10,8 +10,7 @@ from lutris.gui.dialogs.game_import import ImportGameDialog
 from lutris.gui.widgets.common import FileChooserEntry
 from lutris.gui.widgets.navigation_stack import NavigationStack
 from lutris.installer import AUTO_WIN32_EXE, get_installers
-from lutris.scanners.lutris import scan_directory
-from lutris.util.jobs import AsyncCall
+from lutris.util.jobs import COMPLETED_IDLE_TASK, AsyncCall, schedule_at_idle
 from lutris.util.strings import gtk_safe, slugify
 
 
@@ -25,13 +24,6 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
             _("Search the Lutris website for installers"),
             _("Query our website for community installers"),
             "search_installers",
-        ),
-        (
-            "folder-new-symbolic",
-            "go-next-symbolic",
-            _("Import previously installed Lutris games"),
-            _("Scan a folder for games installed from a previous Lutris installation"),
-            "scan_folder",
         ),
         (
             "application-x-executable-symbolic",
@@ -70,7 +62,7 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         self.search_frame = None
         self.search_explanation_label = None
         self.search_listbox = None
-        self.search_timer_id = None
+        self.search_timer_task = COMPLETED_IDLE_TASK
         self.search_spinner = None
         self.text_query = None
         self.search_result_label = None
@@ -120,7 +112,7 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         )
 
         self.install_from_setup_game_name_entry = Gtk.Entry()
-        self.install_from_setup_game_slug_checkbox = Gtk.CheckButton(label="Identifier")
+        self.install_from_setup_game_slug_checkbox = Gtk.CheckButton(label=_("Identifier"))
         self.install_from_setup_game_slug_entry = Gtk.Entry(sensitive=False)
         self.install_from_setup_game_slug_entry.connect(
             "focus-out-event", self.on_install_from_setup_game_slug_entry_focus_out
@@ -136,9 +128,6 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
 
         self.stack.add_named_factory("initial", self.create_initial_page)
         self.stack.add_named_factory("search_installers", self.create_search_installers_page)
-        self.stack.add_named_factory("scan_folder", self.create_scan_folder_page)
-        self.stack.add_named_factory("scanning_folder", self.create_scanning_folder_page)
-        self.stack.add_named_factory("installed_games", self.create_installed_games_page)
         self.stack.add_named_factory("install_from_setup", self.create_install_from_setup_page)
         self.stack.add_named_factory("install_from_script", self.create_install_from_script_page)
         self.stack.add_named_factory("import_rom", self.create_import_rom_page)
@@ -237,18 +226,15 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         self.display_cancel_button()
 
     def _on_search_updated(self, entry):
-        if self.search_timer_id:
-            GLib.source_remove(self.search_timer_id)
+        self.search_timer_task.unschedule()
         self.text_query = entry.get_text().strip()
-        self.search_timer_id = GLib.timeout_add(750, self.update_search_results)
+        self.search_timer_task = schedule_at_idle(self.update_search_results, delay_seconds=0.75)
 
-    def update_search_results(self):
+    def update_search_results(self) -> None:
         # Don't start a search while another is going; defer it instead.
         if self.search_spinner.get_visible():
-            self.search_timer_id = GLib.timeout_add(750, self.update_search_results)
+            self.search_timer_task = schedule_at_idle(self.update_search_results, delay_seconds=0.75)
             return
-
-        self.search_timer_id = None
 
         if self.text_query:
             self.search_spinner.show()
@@ -269,7 +255,7 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         elif count == total_count:
             self.search_result_label.set_markup(_("Showing <b>%s</b> results") % count)
         else:
-            self.search_result_label.set_markup(_("<b>%s</b> results, only displaying first {count}") % total_count)
+            self.search_result_label.set_markup(_("<b>%s</b> results, only displaying first %s") % (total_count, count))
         for row in self.search_listbox.get_children():
             row.destroy()
         for game in api_games.get("results", []):
@@ -290,107 +276,6 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         application = Gio.Application.get_default()
         application.show_lutris_installer_window(game_slug=game_slug)
         self.destroy()
-
-    # Scan Folder Page
-
-    def scan_folder(self):
-        """Scan a folder of already installed games"""
-        self.stack.navigate_to_page(self.present_scan_folder_page)
-
-    def create_scan_folder_page(self):
-        grid = Gtk.Grid(row_spacing=6, column_spacing=6)
-        label = self._get_label(_("Folder to scan"))
-        grid.attach(label, 0, 0, 1, 1)
-        grid.attach(self.scan_directory_chooser, 1, 0, 1, 1)
-        self.scan_directory_chooser.set_hexpand(True)
-
-        explanation = _(
-            "This folder will be scanned for games previously installed with Lutris.\n\n"
-            "Folder names have to match their corresponding Lutris ID, each matching ID"
-            "will be queried for existing install script to provide for exe locations.\n\n"
-            "Click 'Continue' to start scanning and import games"
-        )
-
-        grid.attach(self._get_explanation_label(explanation), 0, 1, 2, 1)
-        return grid
-
-    def present_scan_folder_page(self):
-        self.set_page_title_markup("<b>Select folder to scan for games</b>")
-        self.stack.present_page("scan_folder")
-        self.display_continue_button(self.on_continue_scan_folder_clicked)
-
-    def on_continue_scan_folder_clicked(self, _widget):
-        path = self.scan_directory_chooser.get_text()
-        if not path:
-            ErrorDialog(_("You must select a folder to scan for games."), parent=self)
-        elif not os.path.isdir(path):
-            ErrorDialog(_("No folder exists at '%s'.") % path, parent=self)
-        else:
-            self.load_scanning_folder_page(path)
-
-    # Scanning Folder Page
-
-    def load_scanning_folder_page(self, path):
-        def present_scanning_folder_page():
-            self.set_page_title_markup("<b>Importing games from a folder</b>")
-            self.stack.present_page("scanning_folder")
-            self.display_no_continue_button()
-            AsyncCall(scan_directory, self._on_folder_scanned, path)
-
-        self.stack.jump_to_page(present_scanning_folder_page)
-
-    def create_scanning_folder_page(self):
-        spinner = Gtk.Spinner()
-        spinner.start()
-        return spinner
-
-    def _on_folder_scanned(self, result, error):
-        def present_installed_games_page():
-            if installed or missing:
-                self.set_page_title_markup(_("<b>Games found</b>"))
-            else:
-                self.set_page_title_markup(_("<b>No games found</b>"))
-
-            page = self.create_installed_games_page(installed, missing)
-            self.stack.present_replacement_page("installed_games", page)
-            self.display_cancel_button(label=_("_Close"))
-
-        if error:
-            ErrorDialog(error, parent=self)
-            self.stack.navigation_reset()
-            return
-
-        installed, missing = result
-        self.stack.navigate_to_page(present_installed_games_page)
-
-    def create_installed_games_page(self, installed, missing):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-
-        if installed:
-            installed_label = self._get_label("Installed games")
-            vbox.pack_start(installed_label, False, False, 0)
-
-            installed_listbox = Gtk.ListBox()
-            installed_scroll = Gtk.ScrolledWindow(shadow_type=Gtk.ShadowType.ETCHED_IN)
-            installed_scroll.set_vexpand(True)
-            installed_scroll.add(installed_listbox)
-            vbox.pack_start(installed_scroll, True, True, 0)
-            for folder in installed:
-                installed_listbox.add(self._get_listbox_row("", gtk_safe(folder), ""))
-
-        if missing:
-            missing_listbox = Gtk.ListBox()
-            missing_scroll = Gtk.ScrolledWindow(shadow_type=Gtk.ShadowType.ETCHED_IN)
-            missing_scroll.set_vexpand(True)
-            missing_scroll.add(missing_listbox)
-            vbox.pack_end(missing_scroll, True, True, 0)
-            for folder in missing:
-                missing_listbox.add(self._get_listbox_row("", gtk_safe(folder), ""))
-
-            missing_label = self._get_label("No match found")
-            vbox.pack_end(missing_label, False, False, 0)
-
-        return vbox
 
     # Install from Setup Page
 
@@ -550,7 +435,7 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         return grid
 
     def present_install_from_script_page(self):
-        self.set_page_title_markup("<b>Select a Lutris installer</b>")
+        self.set_page_title_markup(_("<b>Select a Lutris installer</b>"))
         self.stack.present_page("install_from_script")
         self.display_continue_button(self.on_continue_install_from_script_clicked, label=_("_Install"))
 
@@ -591,7 +476,7 @@ class AddGamesWindow(ModelessDialog):  # pylint: disable=too-many-public-methods
         return grid
 
     def present_import_rom_page(self):
-        self.set_page_title_markup("<b>Select a ROM file</b>")
+        self.set_page_title_markup(_("<b>Select a ROM file</b>"))
         self.stack.present_page("import_rom")
         self.display_continue_button(self.on_continue_import_rom_clicked, label=_("_Install"))
 

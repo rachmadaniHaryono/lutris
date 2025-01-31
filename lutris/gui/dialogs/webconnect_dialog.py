@@ -1,8 +1,13 @@
 """isort:skip_file"""
+
 import os
 from gettext import gettext as _
+from typing import TYPE_CHECKING
 
 import gi
+
+if TYPE_CHECKING:
+    from lutris.services.base import OnlineService
 
 try:
     gi.require_version("WebKit2", "4.1")
@@ -12,14 +17,15 @@ from gi.repository import WebKit2
 
 from lutris.gui.dialogs import ModalDialog
 
-DEFAULT_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
-
 
 class WebConnectDialog(ModalDialog):
     """Login form for external services"""
 
-    def __init__(self, service, parent=None):
+    def __init__(self, service: "OnlineService", parent=None):
+        service.is_login_in_progress = True
+
         self.context = WebKit2.WebContext.new()
+
         if "http_proxy" in os.environ:
             proxy = WebKit2.NetworkProxySettings.new(os.environ["http_proxy"])
             self.context.set_network_proxy_settings(WebKit2.NetworkProxyMode.CUSTOM, proxy)
@@ -38,6 +44,7 @@ class WebConnectDialog(ModalDialog):
         self.webview.load_uri(service.login_url)
         self.webview.connect("load-changed", self.on_navigation)
         self.webview.connect("create", self.on_webview_popup)
+        self.webview.connect("decide-policy", self.on_decide_policy)
         self.vbox.set_border_width(0)  # pylint: disable=no-member
         self.vbox.pack_start(self.webview, True, True, 0)  # pylint: disable=no-member
 
@@ -66,6 +73,11 @@ class WebConnectDialog(ModalDialog):
         inspector = self.webview.get_inspector()
         inspector.show()
 
+    def on_decide_policy(self, webview, decision, decision_type):
+        if decision_type == WebKit2.PolicyDecisionType.NAVIGATION_ACTION:
+            decision.use()
+        return True
+
     def on_navigation(self, widget, load_event):
         if load_event == WebKit2.LoadEvent.FINISHED:
             url = widget.get_uri()
@@ -78,12 +90,14 @@ class WebConnectDialog(ModalDialog):
                     resource = widget.get_main_resource()
                     resource.get_data(None, self._get_response_data_finish, None)
                 else:
+                    self.service.is_login_in_progress = False
                     self.service.login_callback(url)
                     self.destroy()
         return True
 
     def _get_response_data_finish(self, resource, result, user_data=None):
         html_response = resource.get_data_finish(result)
+        self.service.is_login_in_progress = False
         self.service.login_callback(html_response)
         self.destroy()
 

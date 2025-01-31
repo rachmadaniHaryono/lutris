@@ -8,7 +8,6 @@ from typing import List
 
 from gi.repository import Gio, Gtk
 
-from lutris.command import MonitoredCommand
 from lutris.config import duplicate_game_config
 from lutris.database.games import add_game, get_game_by_field
 from lutris.game import Game
@@ -20,6 +19,7 @@ from lutris.gui.dialogs import InputDialog
 from lutris.gui.dialogs.log import LogWindow
 from lutris.gui.dialogs.uninstall_dialog import UninstallDialog
 from lutris.gui.widgets.utils import open_uri
+from lutris.monitored_command import MonitoredCommand
 from lutris.services.lutris import download_lutris_media
 from lutris.util import xdgshortcuts
 from lutris.util.jobs import AsyncCall
@@ -103,11 +103,10 @@ class GameActions:
         """Install a game"""
         # Install the currently selected game in the UI
         for game in self.get_games():
-            if not game.is_installed:
-                if not game.slug:
-                    game_id = game.id if game.is_db_stored else game.name
-                    raise RuntimeError("No game to install: %s" % game_id)
-                game.install(launch_ui_delegate=self.window)
+            if not game.slug:
+                game_id = game.id if game.is_db_stored else game.name
+                raise RuntimeError("No game to install: %s" % game_id)
+            game.install(launch_ui_delegate=self.window)
 
     def on_add_favorite_game(self, _widget):
         """Add to favorite Games list"""
@@ -158,6 +157,21 @@ class GameActions:
         dlg = application.show_window(UninstallDialog, parent=self.window)
         dlg.add_games(game_ids)
 
+    def on_edit_game_categories(self, _widget):
+        """Edit game categories"""
+        games = self.get_games()
+        if len(games) == 1:
+            # Individual games get individual separate windows
+            self.application.show_window(EditGameCategoriesDialog, game=games[0], parent=self.window)
+        else:
+
+            def add_games(window):
+                window.add_games(self.get_games())
+
+            # Multi-select means a common categories window for all of them; we can wind
+            # up adding games to it if it's already open
+            self.application.show_window(EditGameCategoriesDialog, update_function=add_games, parent=self.window)
+
 
 class MultiGameActions(GameActions):
     """This actions class handles actions on multiple games together, and only iof they
@@ -175,6 +189,7 @@ class MultiGameActions(GameActions):
         return [
             ("stop", _("Stop"), self.on_game_stop),
             (None, "-", None),
+            ("category", _("Categories"), self.on_edit_game_categories),
             ("favorite", _("Add to favorites"), self.on_add_favorite_game),
             ("deletefavorite", _("Remove from favorites"), self.on_delete_favorite_game),
             ("hide", _("Hide game from library"), self.on_hide_game),
@@ -186,6 +201,7 @@ class MultiGameActions(GameActions):
     def get_displayed_entries(self):
         return {
             "stop": self.is_game_running,
+            "category": True,
             "favorite": any(g for g in self.games if not g.is_favorite),
             "deletefavorite": any(g for g in self.games if g.is_favorite),
             "hide": any(g for g in self.games if g.is_installed and not g.is_hidden),
@@ -223,14 +239,15 @@ class SingleGameActions(GameActions):
             (None, "-", None),
             ("install", _("Install"), self.on_install_clicked),
             ("install_more", _("Install another version"), self.on_install_clicked),
-            ("install_dlcs", "Install DLCs", self.on_install_dlc_clicked),
+            ("install_dlcs", _("Install DLCs"), self.on_install_dlc_clicked),
             ("update", _("Install updates"), self.on_update_clicked),
+            ("add", _("Locate installed game"), self.on_locate_installed_game),
             ("desktop-shortcut", _("Create desktop shortcut"), self.on_create_desktop_shortcut),
             ("rm-desktop-shortcut", _("Delete desktop shortcut"), self.on_remove_desktop_shortcut),
             ("menu-shortcut", _("Create application menu shortcut"), self.on_create_menu_shortcut),
             ("rm-menu-shortcut", _("Delete application menu shortcut"), self.on_remove_menu_shortcut),
-            ("steam-shortcut", _("Create steam shortcut"), self.on_create_steam_shortcut),
-            ("rm-steam-shortcut", _("Delete steam shortcut"), self.on_remove_steam_shortcut),
+            ("steam-shortcut", _("Create Steam shortcut"), self.on_create_steam_shortcut),
+            ("rm-steam-shortcut", _("Delete Steam shortcut"), self.on_remove_steam_shortcut),
             ("view", _("View on Lutris.net"), self.on_view_game),
             ("duplicate", _("Duplicate"), self.on_game_duplicate),
             (None, "-", None),
@@ -241,7 +258,8 @@ class SingleGameActions(GameActions):
         """Return a dictionary of actions that should be shown for a game"""
 
         game = self.game
-        if steam_shortcut.vdf_file_exists():
+        has_steam = steam_shortcut.vdf_file_exists()
+        if has_steam:
             has_steam_shortcut = steam_shortcut.shortcut_exists(game)
             is_steam_game = steam_shortcut.is_steam_game(game)
         else:
@@ -251,6 +269,7 @@ class SingleGameActions(GameActions):
         return {
             "duplicate": game.is_installed,
             "install": self.is_installable,
+            "add": not game.is_installed,
             "play": self.is_game_launchable,
             "update": game.is_updatable,
             "install_dlcs": game.is_updatable,
@@ -265,9 +284,11 @@ class SingleGameActions(GameActions):
             "execute-script": bool(
                 game.is_installed and game.has_runner and game.runner.system_config.get("manual_command")
             ),
-            "desktop-shortcut": (game.is_installed and not xdgshortcuts.desktop_launcher_exists(game.slug, game.id)),
-            "menu-shortcut": (game.is_installed and not xdgshortcuts.menu_launcher_exists(game.slug, game.id)),
-            "steam-shortcut": (game.is_installed and not has_steam_shortcut and not is_steam_game),
+            "desktop-shortcut": bool(
+                game.is_installed and not xdgshortcuts.desktop_launcher_exists(game.slug, game.id)
+            ),
+            "menu-shortcut": bool(game.is_installed and not xdgshortcuts.menu_launcher_exists(game.slug, game.id)),
+            "steam-shortcut": bool(has_steam and game.is_installed and not has_steam_shortcut and not is_steam_game),
             "rm-desktop-shortcut": bool(game.is_installed and xdgshortcuts.desktop_launcher_exists(game.slug, game.id)),
             "rm-menu-shortcut": bool(game.is_installed and xdgshortcuts.menu_launcher_exists(game.slug, game.id)),
             "rm-steam-shortcut": bool(game.is_installed and has_steam_shortcut and not is_steam_game),
@@ -308,10 +329,6 @@ class SingleGameActions(GameActions):
         """Edit game preferences"""
         self.application.show_window(EditGameConfigDialog, game=self.game, parent=self.window)
 
-    def on_edit_game_categories(self, _widget):
-        """Edit game categories"""
-        self.application.show_window(EditGameCategoriesDialog, game=self.game, parent=self.window)
-
     def on_browse_files(self, _widget):
         """Callback to open a game folder in the file browser"""
         path = self.game.get_browse_dir()
@@ -333,7 +350,7 @@ class SingleGameActions(GameActions):
         game = self.game
         launch_config_name = self._select_game_launch_config_name(game)
         if launch_config_name is not None:
-            xdgshortcuts.create_launcher(game.slug, game.id, launch_config_name, menu=True)
+            xdgshortcuts.create_launcher(game.slug, game.id, game.name, launch_config_name, menu=True)
 
     def on_create_steam_shortcut(self, *_args):
         """Add the selected game to steam as a nonsteam-game."""
@@ -390,6 +407,8 @@ class SingleGameActions(GameActions):
             new_config_id = duplicate_game_config(game.slug, old_config_id)
         else:
             new_config_id = None
+        categories = game.get_categories()
+
         duplicate_game_dialog.destroy()
         db_game = get_game_by_field(game.id, "id")
         db_game["name"] = new_name
@@ -403,7 +422,14 @@ class SingleGameActions(GameActions):
         db_game.pop("service_id", None)
 
         game_id = add_game(**db_game)
+
         new_game = Game(game_id)
+
+        # add categories before the save, so it can emit the signal. add_game()
+        # means the game is already on the database, so this is legit.
+        for cat in categories:
+            new_game.add_category(cat, no_signal=True)
+
         new_game.save()
 
         # Download in the background; we'll update the LutrisWindow when this

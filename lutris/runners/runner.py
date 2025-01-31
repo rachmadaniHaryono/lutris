@@ -1,25 +1,37 @@
 """Base module for runners"""
+
 import os
 import signal
 from gettext import gettext as _
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, Iterable, Optional, Set
 
 from lutris import runtime, settings
 from lutris.api import format_runner_version, get_default_runner_version_info
-from lutris.command import MonitoredCommand
 from lutris.config import LutrisConfig
 from lutris.database.games import get_game_by_field
 from lutris.exceptions import MisconfigurationError, MissingExecutableError, UnavailableLibrariesError
+from lutris.monitored_command import MonitoredCommand
 from lutris.runners import RunnerInstallationError
 from lutris.util import flatpak, strings, system
 from lutris.util.extract import ExtractError, extract_archive
 from lutris.util.graphics.gpu import GPUS
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
+from lutris.util.process import Process
+
+
+def kill_processes(sig: int, pids: Iterable[int]) -> None:
+    """Sends a signal to a process list, logging errors without stopping."""
+    for pid in pids:
+        try:
+            os.kill(int(pid), sig)
+        except ProcessLookupError as ex:
+            logger.debug("Failed to kill game process: %s", ex)
+        except PermissionError:
+            logger.debug("Permission to kill process %s denied", pid)
 
 
 class Runner:  # pylint: disable=too-many-public-methods
-
     """Generic runner (base class for other runners)."""
 
     multiple_versions = False
@@ -35,7 +47,6 @@ class Runner:  # pylint: disable=too-many-public-methods
     download_url = None
     arch = None  # If the runner is only available for an architecture that isn't x86_64
     flatpak_id = None
-    has_runner_versions = False
 
     def __init__(self, config=None):
         """Initialize runner."""
@@ -193,7 +204,7 @@ class Runner:  # pylint: disable=too-many-public-methods
 
         exe = os.path.join(settings.RUNNER_DIR, self.runner_executable)
         if not os.path.isfile(exe):
-            raise MissingExecutableError(_("The executable '%s' could not be found.") % self.runner_executable)
+            raise MissingExecutableError(_("The executable '%s' could not be found.") % exe)
         return exe
 
     def get_command(self):
@@ -216,7 +227,17 @@ class Runner:  # pylint: disable=too-many-public-methods
         if os_env:
             env = system.get_environment()
 
-        # By default we'll set NVidia's shader disk cache to be
+        # Steam compatibility
+        if os.environ.get("SteamAppId"):
+            logger.info("Game launched from steam (AppId: %s)", os.environ["SteamAppId"])
+            env["LC_ALL"] = ""
+
+        # Set correct LC_ALL depending on user settings
+        locale = self.system_config.get("locale")
+        if locale:
+            env["LC_ALL"] = locale
+
+        # By default, we'll set NVidia's shader disk cache to be
         # per-game, so it overflows less readily.
         env["__GL_SHADER_DISK_CACHE"] = "1"
         env["__GL_SHADER_DISK_CACHE_PATH"] = self.nvidia_shader_cache_path
@@ -235,7 +256,7 @@ class Runner:  # pylint: disable=too-many-public-methods
         if sdl_video_fullscreen and sdl_video_fullscreen != "off":
             env["SDL_VIDEO_FULLSCREEN_DISPLAY"] = sdl_video_fullscreen
 
-        if self.system_config.get("gpu") and len(GPUS) > 1:
+        if len(GPUS) > 1 and self.system_config.get("gpu") in GPUS:
             gpu = GPUS[self.system_config["gpu"]]
             if gpu.driver == "nvidia":
                 env["DRI_PRIME"] = "1"
@@ -265,6 +286,11 @@ class Runner:  # pylint: disable=too-many-public-methods
         env.update(self.system_config.get("env") or {})
 
         return env
+
+    def finish_env(self, env: Dict[str, str], game) -> None:
+        """This is called by the Game after setting up the environment to allow the runner
+        to make final adjustments, which may be based on the environment so far."""
+        pass
 
     def get_runtime_env(self):
         """Return runtime environment variables.
@@ -415,6 +441,20 @@ class Runner:  # pylint: disable=too-many-public-methods
             return False
         return True
 
+    def filter_game_pids(self, candidate_pids: Iterable[int], game_uuid: str, game_folder: str) -> Set[int]:
+        """Checks the pids given and returns a set containing only those that are part of the running game,
+        identified by its UUID and directory."""
+        folder_pids = set()
+        for pid in candidate_pids:
+            cmdline = Process(pid).cmdline or ""
+            # pressure-vessel: This could potentially pick up PIDs not started by lutris?
+            if game_folder in cmdline:
+                folder_pids.add(pid)
+
+        uuid_pids = set(pid for pid in candidate_pids if Process(pid).environ.get("LUTRIS_GAME_UUID") == game_uuid)
+
+        return folder_pids & uuid_pids
+
     def install_dialog(self, ui_delegate):
         """Ask the user if they want to install the runner.
 
@@ -451,10 +491,15 @@ class Runner:  # pylint: disable=too-many-public-methods
         script settings, to determine more precisely what must be installed."""
         return self.is_installed()
 
-    def get_installer_runner_version(self, installer, use_runner_config: bool = True) -> str:
-        raise RuntimeError("The '%s' runner does not support versions" % self.name)
+    def get_installer_runner_version(self, installer, use_runner_config: bool = True) -> Optional[str]:
+        return None
 
-    def get_runner_version(self, version: str = None) -> Dict[str, str]:
+    def adjust_installer_runner_config(self, installer_runner_config: Dict[str, Any]) -> None:
+        """This is called during installation to let to run fix up in the runner's section of
+        the confliguration before it is saved. This method should modify the dict given."""
+        pass
+
+    def get_runner_version(self, version: str = None) -> Optional[Dict[str, str]]:
         """Get the appropriate version for a runner, as with get_default_runner_version(),
         but this method allows the runner to apply its configuration."""
         return get_default_runner_version_info(self.name, version)
@@ -475,6 +520,14 @@ class Runner:  # pylint: disable=too-many-public-methods
         if not runner_version_info:
             raise RunnerInstallationError(_("Failed to retrieve {} ({}) information").format(self.name, version))
 
+        if "url" not in runner_version_info:
+            if version:
+                raise RunnerInstallationError(
+                    _("The '%s' version of the '%s' runner can't be downloaded." % (version, self.name))
+                )
+            else:
+                raise RunnerInstallationError(_("The the '%s' runner can't be downloaded." % self.name))
+
         if "wine" in self.name:
             opts["merge_single"] = True
             opts["dest"] = os.path.join(self.directory, format_runner_version(runner_version_info))
@@ -482,6 +535,7 @@ class Runner:  # pylint: disable=too-many-public-methods
         if self.name == "libretro" and version:
             opts["merge_single"] = False
             opts["dest"] = os.path.join(settings.RUNNER_DIR, "retroarch/cores")
+
         self.download_and_extract(runner_version_info["url"], **opts)
 
     def download_and_extract(self, url, dest=None, **opts):
@@ -493,8 +547,11 @@ class Runner:  # pylint: disable=too-many-public-methods
         if not dest:
             dest = settings.RUNNER_DIR
 
-        install_ui_delegate.download_install_file(url, runner_archive)
-        self.extract(archive=runner_archive, dest=dest, merge_single=merge_single, callback=callback)
+        download_successful = install_ui_delegate.download_install_file(url, runner_archive)
+        if download_successful:
+            self.extract(archive=runner_archive, dest=dest, merge_single=merge_single, callback=callback)
+        else:
+            logger.info("Download canceled by the user.")
 
     def extract(self, archive=None, dest=None, merge_single=None, callback=None):
         if not system.path_exists(archive, exclude_empty=True):
@@ -508,9 +565,9 @@ class Runner:  # pylint: disable=too-many-public-methods
 
         if self.name == "wine":
             logger.debug("Clearing wine version cache")
-            from lutris.util.wine.wine import get_installed_wine_versions
+            from lutris.util.wine.wine import clear_wine_version_cache
 
-            get_installed_wine_versions.cache_clear()
+            clear_wine_version_cache()
 
         if self.runner_executable:
             runner_executable = os.path.join(settings.RUNNER_DIR, self.runner_executable)
@@ -544,10 +601,10 @@ class Runner:  # pylint: disable=too-many-public-methods
                 break
         return output
 
-    def force_stop_game(self, game):
+    def force_stop_game(self, game_pids: Iterable[int]) -> None:
         """Stop the running game. If this leaves any game processes running,
         the caller will SIGKILL them (after a delay)."""
-        game.kill_processes(signal.SIGTERM)
+        kill_processes(signal.SIGTERM, game_pids)
 
     def extract_icon(self, game_slug):
         """The config UI calls this to extract the game icon. Most runners do not
